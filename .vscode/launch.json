@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/startup",
+      "program": "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/startup/build/Debug/outDebug"
+    }
+  ]
+}
