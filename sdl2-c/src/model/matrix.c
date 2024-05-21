@@ -231,16 +231,15 @@ bool matrix_equals(const Matrix* m1, const Matrix* m2) {
 * 
 * This is the method that performs addition and subtraction of columns
 * onto the Matrix A and B eqiuvalently.
+*
 */
 static void matrix_gauss_jordan_column_operation(Matrix* m1, Matrix* m2, int cRow, int cCol) {
     int rowIndex = cRow + 1;
-    int rowOneIndex = 0;
-    float cElementValue = 0;
     while(rowIndex < ROW)
     {
         if(m1->matrix[rowIndex][cCol] != 0)
         {
-            rowOneIndex = cCol;
+            int rowOneIndex = cCol;
             float rowOneValue = m1->matrix[rowOneIndex][cCol];
 
             if(rowOneValue != 0) {
@@ -252,7 +251,7 @@ static void matrix_gauss_jordan_column_operation(Matrix* m1, Matrix* m2, int cRo
                 for(int i = 0; i < COL; i++)
                 {
                     m1->matrix[rowIndex][i] += (m1->matrix[rowOneIndex][i] * correctionFactor);
-                    m2->matrix[rowIndex][i] += (m2->matrix[rowOneIndex][i] * correctionFactor);
+                    m2->matrix[rowIndex][i] += (m2->matrix[rowOneIndex][i] * correctionFactor2); //correctionfactor2 here?
                 }
             }
         } 
@@ -291,7 +290,7 @@ static void matrix_gauss_jordan_row_operation(Matrix* m1, Matrix* m2, int cRow, 
                 for(int i = 0; i < ROW; i++)
                 {
                     m1->matrix[cRow][i] += (m1->matrix[rowOneIndex][i] * correctionFactor);
-                    m2->matrix[cRow][i] += (m2->matrix[rowOneIndex][i] * correctionFactor2);
+                    m2->matrix[cRow][i] += (m2->matrix[rowOneIndex][i] * correctionFactor2); //correctionfactor2 here?
                 }
             }
         } 
@@ -363,6 +362,8 @@ void matrix_gauss_jordan_elimination(Matrix* A, Matrix* B) {
             matrix_gauss_jordan_row_operation(m1, m2, cRow, cCol);
             diagIndex++;
         }
+        errorCounter++;
+        if(errorCounter > 10) { return; }
     }
     *A = *m1;
     *B = *m2;

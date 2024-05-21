@@ -1,29 +1,38 @@
 #include <stdio.h>
-#include "../matrix.h"
-#include "../vector.h"
+#include <stdbool.h>
+#include <SDL2/SDL.h>
+#include "../controller/engine.h"
 
-int main() {
-    Matrix m1 = {
-        {{1,2,-1},
-         {-2,0,1},
-         {1,-1,0}}
-    };
-    matrix_print(&m1); 
-
-    Matrix m2 = {
-        {{1,0,0},
-         {1,0,0},
-         {0,0,0}}
-    };
-
-    matrix_print(&m2);
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
+#define FPS 60
+#define DELAY_TIME 1000.0f / FPS
 
 
-    Vector v = {1,1,0};
-    vector_normalize(&v);
-    vector_print(&v);
-    float len = vector_length(&v);
+/**
+* Main method
+* 
+* Runs entire process through a while loop continously calling the engine
+* to perform an update and render each iteration.
+*/
+int main( int arc, char* args[] ) {
 
+    printf("START PROGRAM\n");
+    Engine* engine = engine_init(" Chapter 1: Setting up SDL", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+
+    SDL_Event windowEvent;
+    while( engine->g_bIsRunning )
+    {
+        engine_update(engine);
+        engine_render(engine);
+
+        if( SDL_PollEvent( &windowEvent) ) {
+            if( SDL_QUIT == windowEvent.type )
+            { break; }
+        }
+    }
+
+    engine_clean(engine);
     return 0;
-}
 
+}
