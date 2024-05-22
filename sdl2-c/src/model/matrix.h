@@ -1,10 +1,11 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include "vector.h"
 #include <stdbool.h>
 
-#define ROW 3
-#define COL 3
+#define ROW 4
+#define COL 4
 
 
 /**
@@ -64,7 +65,7 @@ Matrix* matrix_create_rotation_matrix(float angle_radian);
 * @param m1 Matrix to be rotated.
 * @param angle_radian angle of rotation (radians).
 */
-void matrix_rotate(Matrix *m, float angle_radian);
+void matrix_rotate(Matrix *m, Vector* point_of_rotation, float angle_radian);
 
 /**
 * Creates a new Indentity Matrix instance.
@@ -93,6 +94,25 @@ void matrix_gauss_jordan_elimination(Matrix* A, Matrix* B);
 * to the Matrix A.
 */
 void matrix_inverse(Matrix* A);
+
+/**
+* Collects specific column and returns it as a vector.
+* @return vector of column.
+*/
+Vector* vector_from_matrix_col(const Matrix* m1, int col);
+
+/**
+* Collects specific row and returns it as a vector.
+* @return vector of row.
+*/
+Vector* vector_from_matrix_row(const Matrix* m1, int row);
+
+/**
+* Returns a Matrix representation of a vector.
+* @return Matrix of vector.
+*/
+Matrix* vector_as_matrix(const Vector* v1);
+
 
 
 

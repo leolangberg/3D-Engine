@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include "engine.h"
 
-
 /**
 * Iteraties through all objects and their update methods.
 */
@@ -9,7 +8,7 @@ void engine_update(Engine* engine) {
     int size = engine->object_list_length;
     for(int i = 0; i < size; i++)
     {
-        engine->object_list[i].update();
+        //engine->object_list[i].update();
     }
     
 }
@@ -17,17 +16,21 @@ void engine_update(Engine* engine) {
 /**
 * Iterates through all objects and their render methods then 
 * presents the result.
+*
+* RenderClear works by setting the screen color to the previously set color
+* because of how SDL2_gfx interacts to ensure no errors 
+* setRenderDrawColor is used after rendering.
 */
 void engine_render(Engine* engine) {
-    
-    SDL_SetRenderDrawColor(engine->g_pRenderer, 0, 0, 0, 255);
+
+    SDL_RenderClear(engine->g_pRenderer);
     int size = engine->object_list_length;
     for(int i = 0; i < size; i++)
     {
-        engine->object_list[i].render();
+        //engine->object_list[i].render();
     }
-    SDL_RenderClear(engine->g_pRenderer);
     SDL_RenderPresent(engine->g_pRenderer);
+    SDL_SetRenderDrawColor(engine->g_pRenderer, 0, 0, 0, 255);
 }
 
 /**
@@ -39,7 +42,7 @@ void engine_clean(Engine* engine) {
     int size = engine->object_list_length;
     for(int i = 0; i < size; i++)
     {
-        engine->object_list[i].clean();
+        //engine->object_list[i].clean();
     }
     SDL_DestroyWindow(engine->g_pWindow);
     SDL_DestroyRenderer(engine->g_pRenderer);
@@ -103,6 +106,8 @@ Engine* engine_init(const char* title, int xpos, int ypos, int width, int height
     engine->window_height = height;
     
     engine->object_list_length = 0;
-    engine->object_list = malloc(INITIAL_OBJECT_LIST_MAX * sizeof(Object));
+   // engine->object_list = malloc(INITIAL_OBJECT_LIST_MAX * sizeof(Object));
+
+    engine->io = io_create((void*) engine_clean, engine);
     return engine;
 }

@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include "../model/object.h"
+#include "../integration/io.h"
 
 #define INITIAL_OBJECT_LIST_MAX 10
 
@@ -14,6 +15,7 @@
 * Window (width and height) and Renderer.
 * Boolean that represents the program running.
 * List containing all objects in program.
+* IO: input and output from user.
 */
 typedef struct{
 
@@ -25,7 +27,9 @@ typedef struct{
     bool g_bIsRunning;
 
     int object_list_length;
-    Object* object_list;    
+   // Object* object_list;    
+
+    IO* io;
 
 }Engine;
 
@@ -60,6 +64,11 @@ void engine_render(Engine* engine);
 * Window and Renderer are then destroyed and engine is freed.
 */
 void engine_clean(Engine* engine);
+
+/**
+* Checks Poll-Events for IO handling.
+*/
+void engine_handle_events(Engine* engine);
 
 
 

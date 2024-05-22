@@ -2,7 +2,6 @@
 #define VECTOR_H
 
 #include <math.h>
-#include "matrix.h"
 
 /*
 * Vector structure (3D).
@@ -17,6 +16,11 @@ typedef struct{
 * Prints vector.
 */
 void vector_print(const Vector* v1);
+
+/**
+* Creates a new vector instance.
+*/
+Vector* vector_create(float x, float y, float z);
 
 /**
 * Carmack's Inverse Square root
@@ -38,7 +42,9 @@ Vector* vector_add(const Vector* v1, const Vector* v2);
 
 /**
 * Subtracts 2 Vectors and returns the difference vector.
-* @return difference vector.
+* @param v1 start point.
+* @param v2 end point.
+* @return difference vector (v2 - v1).
 */
 Vector* vector_sub(const Vector* v1, const Vector* v2);
 
@@ -65,10 +71,8 @@ float vector_dot_product(const Vector* v1, const Vector* v2);
 Vector* vector_cross_product(const Vector* v1, const Vector* v2);
 
 /**
-* Returns a Matrix representation of a vector.
-* @return Matrix of vector.
+* Calculate slope of 2 vectors (2D).
 */
-Matrix* vector_as_matrix(const Vector* v1);
-
+float vector_slope(const Vector* v1, const Vector* v2);
 
 #endif

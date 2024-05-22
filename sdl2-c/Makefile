@@ -22,6 +22,7 @@ CC = gcc
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c) \
 			 $(wildcard $(SRC_DIR)/startup/*.c) \
 			 $(wildcard $(SRC_DIR)/controller/*.c) \
+			 $(wildcard $(SRC_DIR)/integration/*.c) \
 			 $(wildcard $(SRC_DIR)/model/*.c)
 OBJ_NAME = main
 INCLUDE_PATHS = -Iinclude

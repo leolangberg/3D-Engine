@@ -9,6 +9,18 @@ void vector_print(const Vector* v1) {
     printf("| %f |\n", v1->x);
     printf("| %f |\n", v1->y);
     printf("| %f |\n", v1->z);
+    printf("\n");
+}
+
+/**
+* Create a new vector instance.
+*/
+Vector* vector_create(float x, float y, float z) {
+    Vector* v = malloc(sizeof(Vector));
+    v->x = x;
+    v->y = y;
+    v->z = z;
+    return v;
 }
 
 /**
@@ -51,13 +63,15 @@ Vector* vector_add(const Vector* v1, const Vector* v2) {
 
 /**
 * Subtracts 2 Vectors and returns the difference vector.
-* @return difference vector.
+* @param v1 start point.
+* @param v2 end point.
+* @return difference vector (v2 - v1).
 */
 Vector* vector_sub(const Vector* v1, const Vector* v2) {
     Vector* result = malloc(sizeof(Vector));
-    result->x = v1->x - v2->x;
-    result->y = v1->y - v2->y;
-    result->z = v1->z - v2->z;
+    result->x = v2->x - v1->x;
+    result->y = v2->y - v1->y;
+    result->z = v2->z - v1->z;
     return result;
 }
 
@@ -103,14 +117,13 @@ Vector* vector_cross_product(const Vector* v1, const Vector* v2) {
     return result;
 }
 
+
 /**
-* Returns a Matrix representation of a vector.
-* @return Matrix of vector.
+* Calculate slope of 2 vectors (2D).
 */
-Matrix* vector_as_matrix(const Vector* v1) {
-    Matrix* result = malloc(sizeof(Matrix));
-    result->matrix[0][0] = v1->x;
-    result->matrix[0][1] = v1->y;
-    result->matrix[0][2] = v1->z;
-    return result;
+float vector_slope(const Vector* v1, const Vector* v2) {
+    return ((v2->y - v1->y) / (v2->x - v1->x));
 }
+
+
+

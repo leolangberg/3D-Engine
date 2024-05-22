@@ -66,6 +66,7 @@ Node* linkedlist_pop(Linkedlist* list) {
         Node* node = list->last;
         list->last->prev->next = NULL;
         list->last = list->last->prev;
+        list->length--;
         return node;
     }
 }

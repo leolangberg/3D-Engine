@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include "matrix.h"
+#include "vector.h"
 
-#define ROW 3
-#define COL 3
-
+#define ROW 4
+#define COL 4
 
 /**
 * Prints Matrix.
@@ -101,13 +101,20 @@ Matrix* matrix_create_rotation_matrix(float angle_radian) {
     Matrix* rotation = malloc(sizeof(Matrix));
     rotation->matrix[0][0] = cosf(angle_radian);
     rotation->matrix[0][1] = (-sinf(angle_radian));
-    //rotation->matrix[0][2] = 0;
+    rotation->matrix[0][2] = 0;
+    rotation->matrix[0][3] = 0;
     rotation->matrix[1][0] = sinf(angle_radian);
     rotation->matrix[1][1] = cosf(angle_radian);
-    //rotation->matrix[1][2] = 0;
-    //rotation->matrix[2][0] = 0;
-    //rotation->matrix[2][1] = 0;
+    rotation->matrix[1][2] = 0;
+    rotation->matrix[1][3] = 0;
+    rotation->matrix[2][0] = 0;
+    rotation->matrix[2][1] = 0;
     rotation->matrix[2][2] = 1;
+    rotation->matrix[2][3] = 0;
+    rotation->matrix[3][0] = 0;
+    rotation->matrix[3][1] = 0;
+    rotation->matrix[3][2] = 0;
+    rotation->matrix[3][3] = 1;
     return rotation;
 }
 
@@ -120,10 +127,27 @@ Matrix* matrix_create_rotation_matrix(float angle_radian) {
 * @param m1 Matrix to be rotated.
 * @param angle_radian angle of rotation (radians).
 */
-void matrix_rotate(Matrix* m1, float angle_radian) {
+void matrix_rotate(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
     Matrix* rot = matrix_create_rotation_matrix(angle_radian);
-    *m1 = *(matrix_mul(m1, rot));  
+    Matrix* translate_to_origin = matrix_create_identity_matrix();
+    translate_to_origin->matrix[3][0] = (-point_of_rotation->x);
+    translate_to_origin->matrix[3][1] = (-point_of_rotation->y);
+    translate_to_origin->matrix[3][2] = (-point_of_rotation->z);
+    *m1 = *(matrix_mul(m1, translate_to_origin));  
+
+    *m1 = *(matrix_mul(m1, rot)); 
+
+    Matrix* translate_back = matrix_create_identity_matrix();
+    translate_back->matrix[3][0] = point_of_rotation->x;
+    translate_back->matrix[3][1] = point_of_rotation->y;
+    translate_back->matrix[3][2] = point_of_rotation->z;
+    *m1 = *(matrix_mul(m1, translate_back)); 
+
+    free(rot);
+    free(translate_to_origin);
+    free(translate_back);
 }
+
 
 /**
 * Creates a new Indentity Matrix instance.
@@ -131,9 +155,17 @@ void matrix_rotate(Matrix* m1, float angle_radian) {
 */
 Matrix* matrix_create_identity_matrix() {
     Matrix* I = malloc(sizeof(Matrix));
-    I->matrix[0][0] = 1;
-    I->matrix[1][1] = 1;
-    I->matrix[2][2] = 1;
+    for(int i = 0; i < ROW; i++)
+    {
+        for(int j = 0; j < COL; j++)
+        {   
+            if(i == j) {
+                I->matrix[i][j] = 1;
+            } else {
+                I->matrix[i][j] = 0;
+            }
+        }
+    }
     return I;
 }
 
@@ -381,6 +413,36 @@ void matrix_inverse(Matrix* A) {
     matrix_gauss_jordan_elimination(m1, inverse);
     *A = *inverse;
 }
+
+/**
+* Collects specific row and returns it as a vector.
+* @return vector of row.
+*/
+Vector* vector_from_matrix_col(const Matrix* m1, int col) {
+    return vector_create(m1->matrix[0][col], m1->matrix[1][col], m1->matrix[2][col]);
+}
+
+/**
+* Returns a Matrix representation of a vector.
+* @return Matrix of vector.
+*/
+Vector* vector_from_matrix_row(const Matrix* m1, int row) {
+    return vector_create(m1->matrix[row][0], m1->matrix[row][1], m1->matrix[row][2]);
+}
+
+
+/**
+* Returns a Matrix representation of a vector.
+* @return Matrix of vector.
+*/
+Matrix* vector_as_matrix(const Vector* v1) {
+    Matrix* result = malloc(sizeof(Matrix));
+    result->matrix[0][0] = v1->x;
+    result->matrix[0][1] = v1->y;
+    result->matrix[0][2] = v1->z;
+    return result;
+}
+
 
 
 
