@@ -54,6 +54,11 @@ Vector* vector_sub(const Vector* v1, const Vector* v2);
 void vector_scale(Vector* v1, float scalar);
 
 /**
+* Negates vector direction by multiplying each component with (-1).
+*/
+void vector_negate(Vector* v1);
+
+/**
 * Normalizes the vector (scale with magnutide of itself).
 */
 void vector_normalize(Vector* v1);

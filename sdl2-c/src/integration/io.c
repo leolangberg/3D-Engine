@@ -13,16 +13,14 @@
 * Sets quit callback function.
 * @param callback engine function for SDL_QUIT.
 */
-IO* io_create(void* callback(void*), void* callback_param) {
+IO* io_create(bool* quit) {
     IO* io = malloc(sizeof(IO));
     io->keystate = SDL_GetKeyboardState(0);
     io->mouse_positon = vector_create(0, 0, 0);
-
     for(int i = 0; i < 3; i++) {
         io->mousebutton_state[i] = false;
     }
-    io->quit_callback = callback;
-    io->callback_param = callback_param;
+    io->quit = quit;
     return io;
 }
 
@@ -78,6 +76,10 @@ bool io_is_key_down(IO* io, SDL_Scancode key) {
 
 /**
 * Switch Case table for all types of SDL Poll-Events.
+* case SDL_QUIT:            sets dereference of quit to true thus ending main lifecycle loop.
+* case SDL_MOUSEMOTION:     updates mouse position vector with current mouse position.
+* case SDL_MOUSEBUTTONDOWN: updates mousebutton_state array with current state of mouse buttons.
+* case SDL_KEYDOWN:         updates keystate with current state of keys pressed.
 */
 void io_event_update(IO* io) {
     SDL_Event event;
@@ -86,7 +88,7 @@ void io_event_update(IO* io) {
         switch(event.type)
         {
             case SDL_QUIT:
-               io->quit_callback(io->callback_param);
+               *io->quit = true;
             break;
 
             case SDL_MOUSEMOTION:
@@ -104,5 +106,18 @@ void io_event_update(IO* io) {
             default:
             break;
         }
+    }
+}
+
+
+/**
+* Incorporates io_event_update together with outlined SDL_SCANCODE keys.
+* Method basically handles controls.
+*/
+void io_handle_events(IO* io) {
+    io_event_update(io);
+
+    if(io_is_key_down(io, SDL_SCANCODE_Q)) {
+        *io->quit = true;
     }
 }

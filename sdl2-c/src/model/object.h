@@ -2,9 +2,12 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#define OBJECT_SPEED 1
+
 #include "vector.h"
 #include "matrix.h"
 #include <stdint.h>
+#include "../integration/io.h"
 
 /**
 * Basic structure for all polygon variants.
@@ -17,7 +20,7 @@ typedef struct{
     int num_verts;
     Vector* center;
     Vector* velocity;
-    Matrix* vlist;
+    Matrix* vertice_matrix;
     uint32_t color;
 
 }Polygon;
@@ -27,6 +30,23 @@ typedef struct{
 */
 Polygon* object_create_triangle();
 
+/**
+* Handles object related IO input (Object controls).
+*/
+void object_io(IO* io, Polygon* object);
+
+/**
+* Creates a translation matrix out of the velocity vector and then 
+* performs matrix multiplication with current vertices to get new position.
+* Also performs vector addition to update object center.
+*/
+void object_update(Polygon* object);
+
+/**
+* Draws object onto the pixelmap screen by retrieving all vertices
+* and then drawing out the lines between them.
+*/
+void object_draw(uint32_t* pixelmap, Polygon* object);
 
 
 #endif

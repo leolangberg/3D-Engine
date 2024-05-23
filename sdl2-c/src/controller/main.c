@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
-#include "SDL2/SDL.h"
 #include "SDL2/SDL_events.h"
 #include "SDL2/SDL_pixels.h"
 #include "SDL2/SDL_render.h"
@@ -10,7 +9,7 @@
 #include "../integration/display.h"
 #include "SDL2/SDL2_gfxPrimitives.h"
 #include "../model/object.h"
-#include <time.h>
+#include "../integration/io.h"
 
 #define WINDOW_WIDTH 384
 #define WINDOW_HEIGHT 216
@@ -29,18 +28,10 @@ static struct {
     uint32_t pixels[WINDOW_WIDTH * WINDOW_HEIGHT];
     bool quit;
 
-    Vector* pos;
+    IO* io;
 
 }state;
 
-/**
-* Renders a line on the screen.
-*/
-static void render_line(int x, int y0, int y1, uint32_t color) {
-    for(int y = y0; y <= y1; y++) {
-        state.pixels[(y * WINDOW_WIDTH) + x] = color;
-    }
-}
 
 /**
 * Main method
@@ -71,26 +62,22 @@ int main( int arc, char* args[] ) {
             WINDOW_WIDTH, 
             WINDOW_HEIGHT);
 
-    state.pos = vector_create(0, 0, 0);
+    state.io = io_create(&state.quit);
 
     Polygon* triangle = object_create_triangle();
-    uint32_t color = 0xFACDA000;
-
+    
     while(!state.quit)
     {
-        SDL_Event ev;
-        while(SDL_PollEvent(&ev)) {
-            switch(ev.type) {
-                case SDL_QUIT:
-                    state.quit = true;
-                break;
-            }
-        }   
+        io_handle_events(state.io);
+        object_io(state.io, triangle);
+        object_update(triangle);
+        object_draw(state.pixels, triangle);
     }
     
     SDL_DestroyTexture(state.texture);
     SDL_DestroyRenderer(state.renderer);
     SDL_DestroyWindow(state.window);
+    SDL_Quit();
 
     return 0;
 }

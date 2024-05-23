@@ -107,14 +107,15 @@ void bresenhams_algorithm(uint32_t* pixelmap, const Vector* v1, const Vector* v2
 */
 void display_draw_pixel(uint32_t* pixelmap, int x, int y, uint32_t color) {
     if(y < 0 || y >= 216) {
-        printf("pixel not drawn: (%d,%d)", x, y);
+        printf("pixel not drawn: (%d,%d)\n", x, y);
         return;
     }
     if(x < 0 || x >= 384) {
-        printf("pixel not drawn: (%d,%d)", x, y);
+        printf("pixel not drawn: (%d,%d)\n", x, y);
         return;
     }
     pixelmap[(y * 384) + x] = color;
+    printf("DRAW PIXEL: (%d,%d) pxmap: %d\n", x, y, pixelmap[(y * 384) + x]);
 }
 
 /**

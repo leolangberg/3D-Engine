@@ -85,6 +85,17 @@ void vector_scale(Vector* v1, float scalar) {
 }
 
 /**
+* Negates vector direction by multiplying each component with (-1).
+*/
+void vector_negate(Vector* v1) {
+    Vector vn = *v1;
+    vn.x = v1->x * (-1);
+    vn.y = v1->y * (-1);
+    vn.z = v1->z * (-1);
+    *v1 = vn;
+}
+
+/**
 * Normalizes the vector (scale with magnutide of itself).
 */
 void vector_normalize(Vector* v1) {

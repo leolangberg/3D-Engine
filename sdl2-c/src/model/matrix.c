@@ -90,6 +90,40 @@ void matrix_transpose(Matrix* m1) {
 }
 
 /**
+* Creates a new Indentity Matrix instance.
+* @return Identity Matrix.
+*/
+Matrix* matrix_create_identity_matrix() {
+    Matrix* I = malloc(sizeof(Matrix));
+    for(int i = 0; i < ROW; i++)
+    {
+        for(int j = 0; j < COL; j++)
+        {   
+            if(i == j) {
+                I->matrix[i][j] = 1;
+            } else {
+                I->matrix[i][j] = 0;
+            }
+        }
+    }
+    return I;
+}
+
+/**
+* Creates a 4x4 translation matrix used for performing (add and subtract) via
+* matrix multiplication.
+* Constructs a new identity matrix that then sets the [3][0-2] into 
+* given vector.
+*/
+Matrix* matrix_create_translation_matrix(const Vector* v1) {
+    Matrix* translation = matrix_create_identity_matrix();
+    translation->matrix[3][0] = v1->x;
+    translation->matrix[3][1] = v1->y;
+    translation->matrix[3][2] = v1->z;
+    return translation;
+}
+
+/**
 * Creates a new Rotation Matrix instance based of an angle.
 * 
 * Rotation around z-vector. For 3D rotations specifc matrices have to be 
@@ -129,18 +163,13 @@ Matrix* matrix_create_rotation_matrix(float angle_radian) {
 */
 void matrix_rotate(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
     Matrix* rot = matrix_create_rotation_matrix(angle_radian);
-    Matrix* translate_to_origin = matrix_create_identity_matrix();
-    translate_to_origin->matrix[3][0] = (-point_of_rotation->x);
-    translate_to_origin->matrix[3][1] = (-point_of_rotation->y);
-    translate_to_origin->matrix[3][2] = (-point_of_rotation->z);
+    Vector p_negate = *point_of_rotation;
+    Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
     *m1 = *(matrix_mul(m1, translate_to_origin));  
 
     *m1 = *(matrix_mul(m1, rot)); 
 
-    Matrix* translate_back = matrix_create_identity_matrix();
-    translate_back->matrix[3][0] = point_of_rotation->x;
-    translate_back->matrix[3][1] = point_of_rotation->y;
-    translate_back->matrix[3][2] = point_of_rotation->z;
+    Matrix* translate_back = matrix_create_translation_matrix(point_of_rotation);
     *m1 = *(matrix_mul(m1, translate_back)); 
 
     free(rot);
@@ -148,26 +177,6 @@ void matrix_rotate(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
     free(translate_back);
 }
 
-
-/**
-* Creates a new Indentity Matrix instance.
-* @return Identity Matrix.
-*/
-Matrix* matrix_create_identity_matrix() {
-    Matrix* I = malloc(sizeof(Matrix));
-    for(int i = 0; i < ROW; i++)
-    {
-        for(int j = 0; j < COL; j++)
-        {   
-            if(i == j) {
-                I->matrix[i][j] = 1;
-            } else {
-                I->matrix[i][j] = 0;
-            }
-        }
-    }
-    return I;
-}
 
 /**
 * Swaps 2 rows inside matrix.

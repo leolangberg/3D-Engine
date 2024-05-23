@@ -24,8 +24,7 @@ typedef struct{
     Vector* mouse_positon;
     bool mousebutton_state[3];
     const Uint8* keystate;
-    void* (*quit_callback)(void*);
-    void* callback_param;
+    bool* quit;
 }IO;
 
 /**
@@ -34,10 +33,8 @@ typedef struct{
 * Sets keystate as an array to hold current keyboardstate.
 * Mousebutton state array is set to false.
 * Initalizes vector for mouseposition.
-* Sets quit callback function.
-* @param callback engine function for SDL_QUIT.
 */
-IO* io_create(void* callback(void*), void* callback_param);
+IO* io_create(bool* quit);
 
 /**
 * Checks whether specific key is pressed given current keyboard state.
@@ -54,5 +51,11 @@ Vector* io_mouse_position(IO* io);
 * Switch Case table for all types of SDL Poll-Events.
 */
 void io_event_update(IO* io);
+
+/**
+* Incorporates io_event_update together with outlined SDL_SCANCODE keys.
+* Method basically handles controls.
+*/
+void io_handle_events(IO* io);
 
 #endif

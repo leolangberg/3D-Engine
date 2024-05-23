@@ -46,6 +46,21 @@ Matrix* matrix_mul(const Matrix* m1, const Matrix* m2);
 */
 void matrix_transpose(Matrix *m);
 
+
+/**
+* Creates a new Indentity Matrix instance.
+* @return Identity Matrix.
+*/
+Matrix* matrix_create_identity_matrix();
+
+/**
+* Creates a 4x4 translation matrix used for performing (add and subtract) via
+* matrix multiplication.
+* Constructs a new identity matrix that then sets the [3][0-2] into 
+* given vector.
+*/
+Matrix* matrix_create_translation_matrix(const Vector* v1);
+
 /**
 * Creates a new Rotation Matrix instance based of an angle.
 * 
@@ -66,12 +81,6 @@ Matrix* matrix_create_rotation_matrix(float angle_radian);
 * @param angle_radian angle of rotation (radians).
 */
 void matrix_rotate(Matrix *m, Vector* point_of_rotation, float angle_radian);
-
-/**
-* Creates a new Indentity Matrix instance.
-* @return Identity Matrix.
-*/
-Matrix* matrix_create_identity_matrix();
 
 /**
 * Compares 2 Matrices to see if they are equal.
