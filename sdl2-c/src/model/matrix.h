@@ -130,4 +130,15 @@ Matrix* vector_as_matrix(const Vector* v1);
 */
 Matrix* vectors_as_matrix(const Vector** array_of_vectors, int array_length);
 
+/**
+* Scales all matrix values by said scale_factor.
+* Translates vertices to origin.
+* Performs matrix multiplication with diagonal scale factors.
+* Translates vertices back to object.
+* @param m1 matrix of vertices to scale.
+* @param center center point on which to scale around.
+* @param scale_factor scaling multiplier.
+*/
+void matrix_scale(Matrix* m1, Vector* center, float scale_factor);
+
 #endif

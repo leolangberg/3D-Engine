@@ -482,6 +482,37 @@ Matrix* vectors_as_matrix(const Vector** array_of_vectors, int array_length) {
     return m;
 }
 
+/**
+* Scales all matrix values by said scale_factor.
+* Translates vertices to origin.
+* Performs matrix multiplication with diagonal scale factors.
+* Translates vertices back to object.
+* @param m1 matrix of vertices to scale.
+* @param center center point on which to scale around.
+* @param scale_factor scaling multiplier.
+*/
+void matrix_scale(Matrix* m1, Vector* center, float scale_factor) {
+    Matrix* m2 = matrix_create_identity_matrix();
+    m2->matrix[0][0] = scale_factor;
+    m2->matrix[1][1] = scale_factor;
+    m2->matrix[2][2] = scale_factor;
+
+    Vector p_negate = *center;
+    vector_negate(&p_negate);
+    Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
+    *m1 = *(matrix_mul(m1, translate_to_origin));  
+
+    *m1 = *(matrix_mul(m1, m2)); 
+
+    Matrix* translate_back = matrix_create_translation_matrix(center);
+    *m1 = *(matrix_mul(m1, translate_back)); 
+
+    free(m2);
+    free(translate_to_origin);
+    free(translate_back);
+
+}
+
 
 
 

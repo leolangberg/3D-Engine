@@ -109,7 +109,7 @@ int main( int arc, char* args[] ) {
     Polygon* triangle = object_create_triangle(vector_create(50, 50, 0), vector_create(75, 75, 0), vector_create(100, 50, 0));
     Polygon* square = object_create_square(vector_create(100, 100, 0), 20, 20);
 
-    state.objects.add(triangle);
+    //state.objects.add(triangle);
     state.objects.add(square);
     
 

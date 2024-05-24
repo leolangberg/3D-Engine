@@ -74,6 +74,14 @@ void object_io(IO* io, Polygon* object) {
 	if(io_is_key_down(io, SDL_SCANCODE_R)) {
 		matrix_rotate(object->vertice_matrix, object->center, (M_PI / 32));
 	}
+
+	if(io_is_key_down(io, SDL_SCANCODE_O)) {
+		matrix_scale(object->vertice_matrix, object->center, 1.1);
+	}
+
+	if(io_is_key_down(io, SDL_SCANCODE_P)) {
+		matrix_scale(object->vertice_matrix, object->center, 0.9);
+	}
 }
 
 /**
