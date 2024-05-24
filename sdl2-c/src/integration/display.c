@@ -115,7 +115,7 @@ void display_draw_pixel(uint32_t* pixelmap, int x, int y, uint32_t color) {
         return;
     }
     pixelmap[(y * 384) + x] = color;
-    printf("DRAW PIXEL: (%d,%d) pxmap: %d\n", x, y, pixelmap[(y * 384) + x]);
+    //printf("DRAW PIXEL: (%d,%d) pxmap: %d\n", x, y, pixelmap[(y * 384) + x]);
 }
 
 /**

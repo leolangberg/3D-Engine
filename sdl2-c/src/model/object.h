@@ -46,7 +46,7 @@ void object_update(Polygon* object);
 * Draws object onto the pixelmap screen by retrieving all vertices
 * and then drawing out the lines between them.
 */
-void object_draw(uint32_t* pixelmap, Polygon* object);
+void object_draw(uint32_t* pixelmap, Polygon* object, uint32_t color);
 
 
 #endif
