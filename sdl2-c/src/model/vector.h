@@ -5,6 +5,7 @@
 
 /*
 * Vector structure (3D).
+* Holds x,y,z values (float).
 */
 typedef struct{
     float x;

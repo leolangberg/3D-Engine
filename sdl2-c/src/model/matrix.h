@@ -78,6 +78,7 @@ Matrix* matrix_create_rotation_matrix(float angle_radian);
 * is then placed on the dereference *m1, thus changing
 * the inside variable that m1 points to.
 * @param m1 Matrix to be rotated.
+* @param point_of_rotation vector on which the rotation will be performed.
 * @param angle_radian angle of rotation (radians).
 */
 void matrix_rotate(Matrix *m, Vector* point_of_rotation, float angle_radian);
@@ -122,8 +123,11 @@ Vector* vector_from_matrix_row(const Matrix* m1, int row);
 */
 Matrix* vector_as_matrix(const Vector* v1);
 
-
-
-
+/**
+* Takes an array of vectors and places them into a matrix.
+* @param array_of_vectors list of vectors to be restructured as a matrix.
+* @param array_length length of vector array.
+*/
+Matrix* vectors_as_matrix(const Vector** array_of_vectors, int array_length);
 
 #endif

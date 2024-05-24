@@ -159,14 +159,16 @@ Matrix* matrix_create_rotation_matrix(float angle_radian) {
 * is then placed on the dereference *m1, thus changing
 * the inside variable that m1 points to.
 * @param m1 Matrix to be rotated.
+* @param point_of_rotation vector on which the rotation will be performed.
 * @param angle_radian angle of rotation (radians).
 */
 void matrix_rotate(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
-    Matrix* rot = matrix_create_rotation_matrix(angle_radian);
     Vector p_negate = *point_of_rotation;
+    vector_negate(&p_negate);
     Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
     *m1 = *(matrix_mul(m1, translate_to_origin));  
 
+    Matrix* rot = matrix_create_rotation_matrix(angle_radian);
     *m1 = *(matrix_mul(m1, rot)); 
 
     Matrix* translate_back = matrix_create_translation_matrix(point_of_rotation);
@@ -450,6 +452,34 @@ Matrix* vector_as_matrix(const Vector* v1) {
     result->matrix[0][1] = v1->y;
     result->matrix[0][2] = v1->z;
     return result;
+}
+
+/**
+* Takes an array of vectors and places them into a matrix.
+* @param array_of_vectors list of vectors to be restructured as a matrix.
+* @param array_length length of vector array.
+*/
+Matrix* vectors_as_matrix(const Vector** array_of_vectors, int array_length) {
+    if(array_length > ROW) { return NULL; }
+    Matrix* m = malloc(sizeof(Matrix));
+    for(int i = 0; i < array_length; i++) 
+    {
+        m->matrix[i][0] = array_of_vectors[i]->x;
+        m->matrix[i][1] = array_of_vectors[i]->y;
+        m->matrix[i][2] = array_of_vectors[i]->z;
+        m->matrix[i][3] = 1;
+    }
+    if(array_length < ROW) {
+        for(int i = array_length; i < ROW; i++)
+        {
+            m->matrix[i][0] = 0;
+            m->matrix[i][1] = 0;
+            m->matrix[i][2] = 0;
+            m->matrix[i][3] = 0;
+        }
+    }
+
+    return m;
 }
 
 

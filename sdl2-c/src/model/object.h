@@ -16,19 +16,30 @@
 * A list of vertices is then represented as a Matrix (for calculation).
 */
 typedef struct{
-    int state;
     int num_verts;
     Vector* center;
     Vector* velocity;
     Matrix* vertice_matrix;
     uint32_t color;
 
+    void (*update)();
+
 }Polygon;
 
 /**
 * Creates a object polygon structure that represents a Triangle.
+* @param v vertice.
 */
-Polygon* object_create_triangle();
+Polygon* object_create_triangle(const Vector* v1, const Vector* v2, const Vector* v3);
+
+/**
+* Creates a object polygon structure that represents a Square.
+* @param position_center vector position of square center (vertices will be generated 
+*                        based on this point).
+* @param width width of square.
+* @param height of square.
+*/
+Polygon* object_create_square(Vector* position_center, float width, float height);
 
 /**
 * Handles object related IO input (Object controls).

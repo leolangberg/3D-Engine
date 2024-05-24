@@ -19,6 +19,8 @@
 #define DELAY_TIME 1000.0f / FPS
 #define ASSERT(_e, ...) if (!(_e)) { fprintf(stderr, __VA_ARGS__); exit(1); }
 
+#define OBJECT_LIST_MAX_SIZE 10
+
 /**
 * State structure (taken from 'Programming a first person shooter from scratch like it's 1995' by 'jdh').
 * Holds a very simple SDL component structure for window, texture and renderer.
@@ -32,8 +34,22 @@ static struct {
     bool quit;
 
     IO* io;
+    struct {
+        Polygon** object_list;
+        int list_length;
+        void (*add)();
+    }objects;
 
 }state;
+
+/**
+* Function for adding objects to object list in 'state' struct.
+* @param object object to be added.
+*/
+void list_add(void* object) {
+    state.objects.object_list[state.objects.list_length] = object;
+    state.objects.list_length++;
+}
 
 
 /**
@@ -84,9 +100,17 @@ int main( int arc, char* args[] ) {
         SDL_GetError());
 
     state.io = io_create(&state.quit);
+
+    state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
+    state.objects.list_length = 0;
+    state.objects.add = (list_add);
     
 
-    Polygon* triangle = object_create_triangle();
+    Polygon* triangle = object_create_triangle(vector_create(50, 50, 0), vector_create(75, 75, 0), vector_create(100, 50, 0));
+    Polygon* square = object_create_square(vector_create(100, 100, 0), 20, 20);
+
+    state.objects.add(triangle);
+    state.objects.add(square);
     
 
     /**
@@ -105,9 +129,18 @@ int main( int arc, char* args[] ) {
         frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
 
         io_handle_events(state.io);
-        object_io(state.io, triangle);
-        object_update(triangle);
-        object_draw(state.pixels, triangle, color++);
+        for(int i = 0; i < state.objects.list_length; i++) 
+        {
+            object_io(state.io, state.objects.object_list[i]);
+        }
+        for(int i = 0; i < state.objects.list_length; i++)
+        {
+            state.objects.object_list[i]->update(state.objects.object_list[i]);
+        }
+        for(int i = 0; i < state.objects.list_length; i++)
+        {
+            object_draw(state.pixels, state.objects.object_list[i], color++);
+        }
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(

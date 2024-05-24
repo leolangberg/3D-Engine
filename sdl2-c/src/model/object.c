@@ -9,34 +9,47 @@
 /**
 * Creates a object polygon structure that represents a Triangle.
 */
-Polygon* object_create_triangle() {
-
+Polygon* object_create_triangle(const Vector* v1, const Vector* v2, const Vector* v3) {
     Polygon* triangle = malloc(sizeof(Polygon));
-    triangle->state = 1;
     triangle->num_verts = 3;
-    triangle->center = vector_create(175, 175, 0);
+    triangle->center = vector_create(((v1->x + v2->x + v3->x) / 3), ((v1->y + v2->y + v3->y) / 3), ((v1->z + v2->z + v3->z) / 3));
     triangle->velocity = vector_create(0, 0, 0);
 
-    Matrix* m = malloc(sizeof(Matrix));
-    m->matrix[0][0] = 200;
-    m->matrix[0][1] = 200;
-    m->matrix[0][2] = 0;
-    m->matrix[0][3] = 1;
-    m->matrix[1][0] = 150;
-    m->matrix[1][1] = 150;
-    m->matrix[1][2] = 0;
-    m->matrix[1][3] = 1;
-    m->matrix[2][0] = 150;
-    m->matrix[2][1] = 200;
-    m->matrix[2][2] = 0;
-    m->matrix[2][3] = 1;
-    m->matrix[3][0] = 0;
-    m->matrix[3][1] = 0;
-    m->matrix[3][2] = 0;
-    m->matrix[3][3] = 0; 
+	const Vector** array_of_vertices = malloc(sizeof(Vector) * 3);
+	array_of_vertices[0] = v1;
+	array_of_vertices[1] = v2;
+	array_of_vertices[2] = v3;
+	triangle->vertice_matrix = vectors_as_matrix(array_of_vertices, 3);
+	free(array_of_vertices);
 
-    triangle->vertice_matrix = m;
+	triangle->update = (object_update);
     return triangle;
+}
+
+
+/**
+* Creates a object polygon structure that represents a Square.
+* @param position_center vector position of square center (vertices will be generated 
+*                        based on this point).
+* @param width width of square.
+* @param height of square.
+*/
+Polygon* object_create_square(Vector* position_center, float width, float height) {
+	Polygon* square = malloc(sizeof(Polygon));
+	square->num_verts = 4;
+	square->center = position_center;
+	square->velocity = vector_create(0, 0, 0);
+
+	const Vector** array_of_vertices = malloc(sizeof(Vector) * 4);
+	array_of_vertices[0] = vector_create((position_center->x - (width / 2)), (position_center->y + (height / 2)), position_center->z);
+	array_of_vertices[1] = vector_create((position_center->x + (width / 2)), (position_center->y + (height / 2)), position_center->z);
+	array_of_vertices[2] = vector_create((position_center->x + (width / 2)), (position_center->y - (height / 2)), position_center->z);
+	array_of_vertices[3] = vector_create((position_center->x - (width / 2)), (position_center->y - (height / 2)), position_center->z);
+    square->vertice_matrix = vectors_as_matrix(array_of_vertices, 4);
+
+	square->update = (object_update);
+    return square;
+	
 }
 
 /**
@@ -57,6 +70,10 @@ void object_io(IO* io, Polygon* object) {
     if(io_is_key_down(io, SDL_SCANCODE_A)) {
         object->velocity->x = -OBJECT_SPEED;
     }
+
+	if(io_is_key_down(io, SDL_SCANCODE_R)) {
+		matrix_rotate(object->vertice_matrix, object->center, (M_PI / 32));
+	}
 }
 
 /**
@@ -79,11 +96,18 @@ void object_update(Polygon* object) {
 * and then drawing out the lines between them.
 */
 void object_draw(uint32_t* pixelmap, Polygon* object, uint32_t color) {
-    Vector* v1 = vector_from_matrix_row(object->vertice_matrix, 0);
-    Vector* v2 = vector_from_matrix_row(object->vertice_matrix, 1);
-    Vector* v3 = vector_from_matrix_row(object->vertice_matrix, 2);
 
-    display_draw_line(pixelmap, v1, v2, color);
-    display_draw_line(pixelmap, v2, v3, color);
-    display_draw_line(pixelmap, v3, v1, color);
+	Vector** vector_array = malloc(sizeof(Vector) * object->num_verts);
+	for(int i = 0; i < object->num_verts; i++)
+	{
+		vector_array[i] = vector_from_matrix_row(object->vertice_matrix, i);
+	}
+
+	int p = 1;
+	for(int i = 0; i < object->num_verts; i++) {
+		display_draw_line(pixelmap, vector_array[i], vector_array[p], color);
+		p = (p + 1) % object->num_verts;
+	}
+
+	display_draw_pixel(pixelmap, object->center->x, object->center->y, 0x00FFEEFF);
 }
