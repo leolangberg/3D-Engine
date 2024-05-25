@@ -71,8 +71,8 @@ Polygon3D* object_create_cube(Vector* position_center, float radius) {
 	cube->radius = radius;
 	cube->velocity = vector_create(0, 0, 0);
 	cube->num_faces = 6;
-	cube->face_list = malloc(sizeof(Polygon) * cube->num_faces);
 	cube->distance = 20;
+	cube->face_list = malloc(sizeof(Polygon) * cube->num_faces);
 	cube->face_list[0] = object_create_square(
 											  vector_create(position_center->x - radius, position_center->y + radius, position_center->z - radius), 
 											  vector_create(position_center->x + radius, position_center->y + radius, position_center-> z - radius), 
@@ -133,14 +133,10 @@ void object_io(IO* io, Polygon3D* object) {
         object->velocity->x = -OBJECT_SPEED;
     }
 	if(io_is_key_down(io, SDL_SCANCODE_I)) {
-		object->center->z = OBJECT_SPEED;
-		object->distance += 1;
-		object_perspective_3d(object, object->distance);
+		object->velocity->z = OBJECT_SPEED;
 	}
 	if(io_is_key_down(io, SDL_SCANCODE_O)) {
 		object->velocity->z = -OBJECT_SPEED;
-		object->distance -= 1;
-		object_perspective_3d(object, object->distance);
 	}
 
 	/*
@@ -185,6 +181,7 @@ void object_perspective_3d(Polygon3D* object3d, float distance) {
 	Vector p_negate = *object3d->center;
 	vector_negate(&p_negate);
 	Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
+	translate_to_origin->matrix[3][2] = 0;
 	for(int i = 0; i < object3d->num_faces; i++) {
 		*object3d->face_list[i]->vertice_matrix = (*matrix_mul(object3d->face_list[i]->vertice_matrix, translate_to_origin));
 	}
@@ -195,6 +192,7 @@ void object_perspective_3d(Polygon3D* object3d, float distance) {
 	}
 
 	Matrix* translate_back = matrix_create_translation_matrix(object3d->center);
+	translate_back->matrix[3][2] = 0;
 	for(int i = 0; i < object3d->num_faces; i++) {
 		*object3d->face_list[i]->vertice_matrix = (*matrix_mul(object3d->face_list[i]->vertice_matrix, translate_back));
 	}
@@ -206,7 +204,7 @@ void object_perspective_3d(Polygon3D* object3d, float distance) {
 * @param object3d 3D object to be update.
 * @param distance camera distance.
 */
-void object_update_3d(Polygon3D* object3d, float distance) {
+void object_update_3d(Polygon3D* object3d) {
 	Matrix* translate = matrix_create_translation_matrix(object3d->velocity);
 	for(int i = 0; i < object3d->num_faces; i++)
 	{
@@ -224,7 +222,6 @@ void object_update_3d(Polygon3D* object3d, float distance) {
 * and then drawing out the lines between them.
 */
 void object_draw(uint32_t* pixelmap, Polygon* object, uint32_t color) {
-
 	Vector** vector_array = malloc(sizeof(Vector) * object->num_verts);
 	for(int i = 0; i < object->num_verts; i++)
 	{
@@ -244,14 +241,19 @@ void object_draw(uint32_t* pixelmap, Polygon* object, uint32_t color) {
 /**
 * Draws a 3d object by drawing all faces of that object.
 */
-void object_draw_3d(uint32_t* pixelmap, Polygon3D* object, uint32_t color) {
+void object_draw_3d(uint32_t* pixelmap, Polygon3D* object, float distance, uint32_t color) {
+
+	Polygon3D* copy = object_create_cube(object->center, object->radius);
+	object_perspective_3d(copy, distance);
+
 	for(int i = 0; i < object->num_faces; i++)
 	{	
 		uint32_t colorfixed = 0x0000FFFF;
-		object_draw(pixelmap, object->face_list[i], colorfixed);
+		object_draw(pixelmap, copy->face_list[i], colorfixed);
 		colorfixed += 0x000FFFFF;
-		display_draw_pixel(pixelmap, object->face_list[i]->center->x, object->face_list[i]->center->y, 0x00FFEEFF);
+		display_draw_pixel(pixelmap, copy->face_list[i]->center->x, copy->face_list[i]->center->y, 0x00FFEEFF);
 	}
 
 	display_draw_pixel(pixelmap, object->center->x, object->center->y, 0x003F0EFF);
+	free(copy);
 }

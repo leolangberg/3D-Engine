@@ -139,8 +139,8 @@ int main( int arc, char* args[] ) {
         io_handle_events(state.io);
         
         object_io(state.io, state.objects.object_list[0]);
-        object_update_3d(state.objects.object_list[0], state.camera_distance);
-        object_draw_3d(state.pixels, state.objects.object_list[0], color++);
+        object_update_3d(state.objects.object_list[0]);
+        object_draw_3d(state.pixels, state.objects.object_list[0], state.camera_distance, color++);
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(

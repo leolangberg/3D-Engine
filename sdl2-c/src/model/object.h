@@ -85,7 +85,7 @@ void object_update(Polygon* object);
 * @param object3d 3D object to be update.
 * @param distance camera distance.
 */
-void object_update_3d(Polygon3D* object3d, float distance);
+void object_update_3d(Polygon3D* object3d);
 
 /**
 * Draws object onto the pixelmap screen by retrieving all vertices
@@ -93,7 +93,7 @@ void object_update_3d(Polygon3D* object3d, float distance);
 */
 void object_draw(uint32_t* pixelmap, Polygon* object, uint32_t color);
 
-void object_draw_3d(uint32_t* pixelmap, Polygon3D* object, uint32_t color);
+void object_draw_3d(uint32_t* pixelmap, Polygon3D* object, float distance, uint32_t color);
 
 
 #endif
