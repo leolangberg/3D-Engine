@@ -141,4 +141,12 @@ Matrix* vectors_as_matrix(const Vector** array_of_vectors, int array_length);
 */
 void matrix_scale(Matrix* m1, Vector* center, float scale_factor);
 
+/**
+* Applies perspective transformation on matrix.
+* First performs matrix multiplication which incorporates (d) distance into
+* matrix. 
+* Each row x,y,z values are then divided by their equivalent d/z value.
+*/
+void matrix_perspective_transformation(Matrix* m1, float distance);
+
 #endif

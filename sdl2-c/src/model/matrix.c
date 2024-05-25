@@ -514,6 +514,30 @@ void matrix_scale(Matrix* m1, Vector* center, float scale_factor) {
 }
 
 
+/**
+* Applies perspective transformation on matrix.
+* First performs matrix multiplication which incorporates (d) distance into
+* matrix. 
+* Each row x,y,z values are then divided by their equivalent d/z value.
+*/
+void matrix_perspective_transformation(Matrix* m1, float distance) {
+    if(distance == 0) { return; }
+    Matrix* perspective = matrix_create_identity_matrix();
+    perspective->matrix[2][3] = 1 / distance;
+    perspective->matrix[3][3] = 0;
+    Matrix* tmp = matrix_mul(m1, perspective);
+
+    for(int i = 0; i < ROW; i++)
+    {
+        for(int j = 0; j < COL; j++)
+        {
+            tmp->matrix[i][j] = (tmp->matrix[i][j] / tmp->matrix[i][3]);
+        }
+    }
+    *m1 = *tmp;
+}
+
+
 
 
 

@@ -21,6 +21,7 @@
 
 #define OBJECT_LIST_MAX_SIZE 10
 
+
 /**
 * State structure (taken from 'Programming a first person shooter from scratch like it's 1995' by 'jdh').
 * Holds a very simple SDL component structure for window, texture and renderer.
@@ -32,10 +33,11 @@ static struct {
     SDL_Renderer *renderer;
     uint32_t pixels[WINDOW_WIDTH * WINDOW_HEIGHT];
     bool quit;
-
+    Vector* camera_pos;
+    int camera_distance;
     IO* io;
     struct {
-        Polygon** object_list;
+        Polygon3D** object_list;
         int list_length;
         void (*add)();
     }objects;
@@ -99,6 +101,8 @@ int main( int arc, char* args[] ) {
         "failed to create SDL texture %s\n",
         SDL_GetError());
 
+    state.camera_pos = vector_create(0, 0, 0);
+    state.camera_distance = 10;
     state.io = io_create(&state.quit);
 
     state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
@@ -106,11 +110,15 @@ int main( int arc, char* args[] ) {
     state.objects.add = (list_add);
     
 
-    Polygon* triangle = object_create_triangle(vector_create(50, 50, 0), vector_create(75, 75, 0), vector_create(100, 50, 0));
-    Polygon* square = object_create_square(vector_create(100, 100, 0), 20, 20);
+    Polygon3D* cube = object_create_cube(vector_create(100, 100, 100), 20);
+    for(int i = 0; i < cube->num_faces; i++) 
+    {
+        printf("side: %d\n", i);
+        matrix_print(cube->face_list[i]->vertice_matrix);
+    }
 
     //state.objects.add(triangle);
-    state.objects.add(square);
+    state.objects.add(cube);
     
 
     /**
@@ -129,18 +137,10 @@ int main( int arc, char* args[] ) {
         frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
 
         io_handle_events(state.io);
-        for(int i = 0; i < state.objects.list_length; i++) 
-        {
-            object_io(state.io, state.objects.object_list[i]);
-        }
-        for(int i = 0; i < state.objects.list_length; i++)
-        {
-            state.objects.object_list[i]->update(state.objects.object_list[i]);
-        }
-        for(int i = 0; i < state.objects.list_length; i++)
-        {
-            object_draw(state.pixels, state.objects.object_list[i], color++);
-        }
+        
+        object_io(state.io, state.objects.object_list[0]);
+        object_update_3d(state.objects.object_list[0], state.camera_distance);
+        object_draw_3d(state.pixels, state.objects.object_list[0], color++);
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(
