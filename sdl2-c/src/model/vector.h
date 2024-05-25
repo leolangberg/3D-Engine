@@ -81,4 +81,9 @@ Vector* vector_cross_product(const Vector* v1, const Vector* v2);
 */
 float vector_slope(const Vector* v1, const Vector* v2);
 
+/**
+* Copies given vector.
+*/
+Vector* vector_copy(const Vector* original);
+
 #endif

@@ -71,7 +71,6 @@ Polygon3D* object_create_cube(Vector* position_center, float radius) {
 	cube->radius = radius;
 	cube->velocity = vector_create(0, 0, 0);
 	cube->num_faces = 6;
-	cube->distance = 20;
 	cube->face_list = malloc(sizeof(Polygon) * cube->num_faces);
 	cube->face_list[0] = object_create_square(
 											  vector_create(position_center->x - radius, position_center->y + radius, position_center->z - radius), 
@@ -109,6 +108,7 @@ Polygon3D* object_create_cube(Vector* position_center, float radius) {
 											  vector_create(position_center->x + radius, position_center->y - radius, position_center-> z + radius),
 											  vector_create(position_center->x - radius, position_center->y - radius, position_center->z + radius));
 
+	cube->update = (object_update_3d);
 	return cube;										
 
 }
@@ -139,19 +139,23 @@ void object_io(IO* io, Polygon3D* object) {
 		object->velocity->z = -OBJECT_SPEED;
 	}
 
-	/*
-	if(io_is_key_down(io, SDL_SCANCODE_R)) {
-		matrix_rotate(object->vertice_matrix, object->center, (M_PI / 32));
+
+	if(io_is_key_down(io, SDL_SCANCODE_Z)) {
+		for(int i = 0; i < object->num_faces; i++) {
+			matrix_rotate_z(object->face_list[i]->vertice_matrix, object->center, (M_PI / 32));
+		}
+	}
+	if(io_is_key_down(io, SDL_SCANCODE_X)) {
+		for(int i = 0; i < object->num_faces; i++) {
+			matrix_rotate_x(object->face_list[i]->vertice_matrix, object->center, (M_PI / 32));
+		}
+	}
+	if(io_is_key_down(io, SDL_SCANCODE_Y)) {
+		for(int i = 0; i < object->num_faces; i++) {
+			matrix_rotate_y(object->face_list[i]->vertice_matrix, object->center, (M_PI / 32));
+		}
 	}
 
-	if(io_is_key_down(io, SDL_SCANCODE_O)) {
-		matrix_scale(object->vertice_matrix, object->center, 1.1);
-	}
-
-	if(io_is_key_down(io, SDL_SCANCODE_P)) {
-		matrix_scale(object->vertice_matrix, object->center, 0.9);
-	}
-	*/
 }
 
 /**
@@ -168,6 +172,41 @@ void object_update(Polygon* object) {
 	object->velocity->y = 0;
 	object->velocity->z = 0;
 }
+
+/**
+* Copies given polygon.
+*/
+Polygon* object_polygon_copy(const Polygon* original) {
+	Polygon* copy = malloc(sizeof(Polygon));
+	copy->num_verts = original->num_verts;
+	copy->vertice_matrix = matrix_copy(original->vertice_matrix);
+	copy->center = vector_copy(original->center);
+	copy->update = original->update;
+	copy->color = original->color;
+	return copy;
+}
+
+/**
+* Draws object onto the pixelmap screen by retrieving all vertices
+* and then drawing out the lines between them.
+*/
+void object_draw(uint32_t* pixelmap, Polygon* object, uint32_t color) {
+	Vector** vector_array = malloc(sizeof(Vector) * object->num_verts);
+	for(int i = 0; i < object->num_verts; i++)
+	{
+		vector_array[i] = vector_from_matrix_row(object->vertice_matrix, i);
+	}
+
+	int p = 1;
+	for(int i = 0; i < object->num_verts; i++) {
+		display_draw_line(pixelmap, vector_array[i], vector_array[p], color);
+		p = (p + 1) % object->num_verts;
+	}
+
+	display_draw_pixel(pixelmap, object->center->x, object->center->y, 0xFFEEFFFF);
+}
+
+
 
 /**
 * Applies perspective on a 3D object the same as an object is scaled.
@@ -218,42 +257,57 @@ void object_update_3d(Polygon3D* object3d) {
 }
 
 /**
-* Draws object onto the pixelmap screen by retrieving all vertices
-* and then drawing out the lines between them.
+* Copies given 3D polygon.
 */
-void object_draw(uint32_t* pixelmap, Polygon* object, uint32_t color) {
-	Vector** vector_array = malloc(sizeof(Vector) * object->num_verts);
-	for(int i = 0; i < object->num_verts; i++)
+Polygon3D* object_polygon3d_copy(const Polygon3D* original) {
+	Polygon3D* copy = malloc(sizeof(Polygon3D));
+	copy->center = vector_copy(original->center);
+	copy->num_faces = original->num_faces;
+	copy->radius = original->radius;
+	copy->velocity = vector_copy(original->velocity);
+
+	copy->face_list = malloc(sizeof(Polygon) * original->num_faces);
+	for(int i = 0; i < original->num_faces; i++)
 	{
-		vector_array[i] = vector_from_matrix_row(object->vertice_matrix, i);
+		copy->face_list[i] = object_polygon_copy(original->face_list[i]);
 	}
-
-	int p = 1;
-	for(int i = 0; i < object->num_verts; i++) {
-		display_draw_line(pixelmap, vector_array[i], vector_array[p], color);
-		p = (p + 1) % object->num_verts;
-	}
-
-	display_draw_pixel(pixelmap, object->center->x, object->center->y, 0x00FFEEFF);
+	return copy;
 }
 
 
 /**
-* Draws a 3d object by drawing all faces of that object.
+* Creates a copy of original object then performs perspective calculation on said copy.
+* This copy (with correct perspective) is then sent to draw out each polygon inside this 3D polygon 
+* individually.
 */
 void object_draw_3d(uint32_t* pixelmap, Polygon3D* object, float distance, uint32_t color) {
 
-	Polygon3D* copy = object_create_cube(object->center, object->radius);
+	Polygon3D* copy = object_polygon3d_copy(object);
 	object_perspective_3d(copy, distance);
 
-	for(int i = 0; i < object->num_faces; i++)
+	uint32_t colorfixed = 0xFF0000FF;
+	for(int i = 5; i >= 0; i--)
 	{	
-		uint32_t colorfixed = 0x0000FFFF;
 		object_draw(pixelmap, copy->face_list[i], colorfixed);
-		colorfixed += 0x000FFFFF;
-		display_draw_pixel(pixelmap, copy->face_list[i]->center->x, copy->face_list[i]->center->y, 0x00FFEEFF);
+		colorfixed = colorfixed >> 2;
+		colorfixed += 0x000000FF;
+		if(colorfixed == 0x000000FF) {
+			colorfixed = 0xFF0000FF;
+		}
 	}
 
 	display_draw_pixel(pixelmap, object->center->x, object->center->y, 0x003F0EFF);
 	free(copy);
+}
+
+
+/**
+* Rotates object with give angle (radians).
+* Performs matrix multiplication with all 3 rotational matrices (R = Rz * Ry * Rx);
+*/
+void object_rotate_3d(Polygon3D* object, float angle_radian) {
+	for(int i = 0; i < object->num_faces; i++)
+	{
+		matrix_rotate(object->face_list[i]->vertice_matrix, object->center, angle_radian);
+	}
 }

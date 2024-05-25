@@ -102,7 +102,7 @@ int main( int arc, char* args[] ) {
         SDL_GetError());
 
     state.camera_pos = vector_create(0, 0, 0);
-    state.camera_distance = 10;
+    state.camera_distance = 20;
     state.io = io_create(&state.quit);
 
     state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
@@ -111,16 +111,9 @@ int main( int arc, char* args[] ) {
     
 
     Polygon3D* cube = object_create_cube(vector_create(100, 100, 100), 20);
-    for(int i = 0; i < cube->num_faces; i++) 
-    {
-        printf("side: %d\n", i);
-        matrix_print(cube->face_list[i]->vertice_matrix);
-    }
-
-    //state.objects.add(triangle);
     state.objects.add(cube);
-    
 
+    
     /**
     * Engine Lifecycle loop.
     * 
@@ -154,6 +147,13 @@ int main( int arc, char* args[] ) {
         SDL_RenderPresent(state.renderer);
 
         memset(state.pixels, 0, sizeof(state.pixels));
+
+        char title[100];
+        snprintf(title, sizeof(title), "Coordinates: x=%.2f, y=%.2f, z=%.2f", 
+                    state.objects.object_list[0]->center->x, 
+                    state.objects.object_list[0]->center->y, 
+                    state.objects.object_list[0]->center->z);
+        SDL_SetWindowTitle(state.window, title);
 
         frameTime = SDL_GetTicks64() - frameStart;
         if(frameTime < DELAY_TIME) {

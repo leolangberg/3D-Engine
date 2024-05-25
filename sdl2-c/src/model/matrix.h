@@ -84,6 +84,21 @@ Matrix* matrix_create_rotation_matrix(float angle_radian);
 void matrix_rotate(Matrix *m, Vector* point_of_rotation, float angle_radian);
 
 /**
+* Rotates matrix along z axis only.
+*/
+void matrix_rotate_z(Matrix* m1, Vector* point_of_rotation, float angle_radian);
+
+/**
+* Rotates matrix along y axis only.
+*/
+void matrix_rotate_y(Matrix* m1, Vector* point_of_rotation, float angle_radian);
+
+/**
+* Rotates matrix along x axis only.
+*/
+void matrix_rotate_x(Matrix* m1, Vector* point_of_rotation, float angle_radian);
+
+/**
 * Compares 2 Matrices to see if they are equal.
 * @return bool true or false.
 */
@@ -148,5 +163,10 @@ void matrix_scale(Matrix* m1, Vector* center, float scale_factor);
 * Each row x,y,z values are then divided by their equivalent d/z value.
 */
 void matrix_perspective_transformation(Matrix* m1, float distance);
+
+/**
+* Copies given matrix.
+*/
+Matrix* matrix_copy(const Matrix* original);
 
 #endif

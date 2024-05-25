@@ -137,4 +137,16 @@ float vector_slope(const Vector* v1, const Vector* v2) {
 }
 
 
+/**
+* Copies given vector.
+*/
+Vector* vector_copy(const Vector* original) {
+    Vector* copy = (Vector*)malloc(sizeof(Vector));
+    copy->x = original->x;
+    copy->y = original->y;
+    copy->z = original->z;
+    return copy;
+}
+
+
 

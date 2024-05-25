@@ -127,11 +127,10 @@ Matrix* matrix_create_translation_matrix(const Vector* v1) {
 * Creates a new Rotation Matrix instance based of an angle.
 * 
 * Rotation around z-vector. For 3D rotations specifc matrices have to be 
-* constructed for rotation along x, y axis aswell.
 * @param angle_radian angle of rotation (in radians).
 * @return Rotational Matrix.
 */
-Matrix* matrix_create_rotation_matrix(float angle_radian) {
+Matrix* matrix_create_rotation_matrix_z(float angle_radian) {
     Matrix* rotation = malloc(sizeof(Matrix));
     rotation->matrix[0][0] = cosf(angle_radian);
     rotation->matrix[0][1] = (-sinf(angle_radian));
@@ -144,6 +143,62 @@ Matrix* matrix_create_rotation_matrix(float angle_radian) {
     rotation->matrix[2][0] = 0;
     rotation->matrix[2][1] = 0;
     rotation->matrix[2][2] = 1;
+    rotation->matrix[2][3] = 0;
+    rotation->matrix[3][0] = 0;
+    rotation->matrix[3][1] = 0;
+    rotation->matrix[3][2] = 0;
+    rotation->matrix[3][3] = 1;
+    return rotation;
+}
+
+/**
+* Creates a new Rotation Matrix instance based of an angle.
+* 
+* Rotation around x-vector. For 3D rotations specifc matrices have to be 
+* @param angle_radian angle of rotation (in radians).
+* @return Rotational Matrix.
+*/
+Matrix* matrix_create_rotation_matrix_x(float angle_radian) {
+    Matrix* rotation = malloc(sizeof(Matrix));
+    rotation->matrix[0][0] = 1;
+    rotation->matrix[0][1] = 0;
+    rotation->matrix[0][2] = 0;
+    rotation->matrix[0][3] = 0;
+    rotation->matrix[1][0] = 0;
+    rotation->matrix[1][1] = cosf(angle_radian);
+    rotation->matrix[1][2] = -sinf(angle_radian);
+    rotation->matrix[1][3] = 0;
+    rotation->matrix[2][0] = 0;
+    rotation->matrix[2][1] = sinf(angle_radian);
+    rotation->matrix[2][2] = cosf(angle_radian);
+    rotation->matrix[2][3] = 0;
+    rotation->matrix[3][0] = 0;
+    rotation->matrix[3][1] = 0;
+    rotation->matrix[3][2] = 0;
+    rotation->matrix[3][3] = 1;
+    return rotation;
+}
+
+/**
+* Creates a new Rotation Matrix instance based of an angle.
+* 
+* Rotation around y-vector. For 3D rotations specifc matrices have to be 
+* @param angle_radian angle of rotation (in radians).
+* @return Rotational Matrix.
+*/
+Matrix* matrix_create_rotation_matrix_y(float angle_radian) {
+    Matrix* rotation = malloc(sizeof(Matrix));
+    rotation->matrix[0][0] = cosf(angle_radian);
+    rotation->matrix[0][1] = 0;
+    rotation->matrix[0][2] = sinf(angle_radian);
+    rotation->matrix[0][3] = 0;
+    rotation->matrix[1][0] = 0;
+    rotation->matrix[1][1] = 1;
+    rotation->matrix[1][2] = 0;
+    rotation->matrix[1][3] = 0;
+    rotation->matrix[2][0] = -sinf(angle_radian);
+    rotation->matrix[2][1] = 0;
+    rotation->matrix[2][2] = cosf(angle_radian);
     rotation->matrix[2][3] = 0;
     rotation->matrix[3][0] = 0;
     rotation->matrix[3][1] = 0;
@@ -168,13 +223,79 @@ void matrix_rotate(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
     Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
     *m1 = *(matrix_mul(m1, translate_to_origin));  
 
-    Matrix* rot = matrix_create_rotation_matrix(angle_radian);
-    *m1 = *(matrix_mul(m1, rot)); 
+    Matrix* rot_z = matrix_create_rotation_matrix_z(angle_radian);
+    Matrix* rot_y = matrix_create_rotation_matrix_y(angle_radian);
+    Matrix* rot_x = matrix_create_rotation_matrix_x(angle_radian);
+    *m1 = *(matrix_mul(m1, rot_z)); 
+    *m1 = *(matrix_mul(m1, rot_y)); 
+    *m1 = *(matrix_mul(m1, rot_x)); 
 
     Matrix* translate_back = matrix_create_translation_matrix(point_of_rotation);
     *m1 = *(matrix_mul(m1, translate_back)); 
 
-    free(rot);
+    free(rot_z);
+    free(rot_y);
+    free(rot_x);
+    free(translate_to_origin);
+    free(translate_back);
+}
+
+/**
+* Rotates matrix along z axis only.
+*/
+void matrix_rotate_z(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
+    Vector p_negate = *point_of_rotation;
+    vector_negate(&p_negate);
+    Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
+    *m1 = *(matrix_mul(m1, translate_to_origin));  
+
+    Matrix* rot_z = matrix_create_rotation_matrix_z(angle_radian);
+    *m1 = *(matrix_mul(m1, rot_z)); 
+
+    Matrix* translate_back = matrix_create_translation_matrix(point_of_rotation);
+    *m1 = *(matrix_mul(m1, translate_back)); 
+
+    free(rot_z);
+    free(translate_to_origin);
+    free(translate_back);
+}
+
+/**
+* Rotates matrix along y axis only.
+*/
+void matrix_rotate_y(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
+    Vector p_negate = *point_of_rotation;
+    vector_negate(&p_negate);
+    Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
+    *m1 = *(matrix_mul(m1, translate_to_origin));  
+
+    Matrix* rot_y = matrix_create_rotation_matrix_y(angle_radian);
+    *m1 = *(matrix_mul(m1, rot_y)); 
+
+    Matrix* translate_back = matrix_create_translation_matrix(point_of_rotation);
+    *m1 = *(matrix_mul(m1, translate_back)); 
+
+    free(rot_y);
+    free(translate_to_origin);
+    free(translate_back);
+}
+
+/**
+* Rotates matrix along x axis only.
+*/
+void matrix_rotate_x(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
+    Vector p_negate = *point_of_rotation;
+    vector_negate(&p_negate);
+    Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
+    *m1 = *(matrix_mul(m1, translate_to_origin));  
+
+    Matrix* rot_x = matrix_create_rotation_matrix_x(angle_radian);
+    *m1 = *(matrix_mul(m1, rot_x)); 
+
+    Matrix* translate_back = matrix_create_translation_matrix(point_of_rotation);
+    *m1 = *(matrix_mul(m1, translate_back)); 
+
+    free(rot_x);
     free(translate_to_origin);
     free(translate_back);
 }
@@ -537,6 +658,20 @@ void matrix_perspective_transformation(Matrix* m1, float distance) {
     *m1 = *tmp;
 }
 
+/**
+* Copies given matrix.
+*/
+Matrix* matrix_copy(const Matrix* original) {
+    Matrix* copy = (Matrix*)malloc(sizeof(Matrix));
+    for(int i = 0; i < ROW; i++)
+    {
+        for(int j = 0; j < COL; j++)
+        {
+            copy->matrix[i][j] = original->matrix[i][j];
+        }
+    }
+    return copy;
+}
 
 
 
