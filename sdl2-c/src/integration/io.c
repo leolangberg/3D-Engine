@@ -1,5 +1,6 @@
 #include "io.h"
 #include "SDL2/SDL_keyboard.h"
+#include "SDL2/SDL_scancode.h"
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -13,7 +14,7 @@
 * Sets quit callback function.
 * @param callback engine function for SDL_QUIT.
 */
-IO* io_create(bool* quit) {
+IO* io_create(bool* quit, Vector* camera_pos) {
     IO* io = malloc(sizeof(IO));
     io->keystate = SDL_GetKeyboardState(0);
     io->mouse_positon = vector_create(0, 0, 0);
@@ -21,6 +22,7 @@ IO* io_create(bool* quit) {
         io->mousebutton_state[i] = false;
     }
     io->quit = quit;
+    io->camera_pos = camera_pos;
     return io;
 }
 
@@ -119,5 +121,21 @@ void io_handle_events(IO* io) {
 
     if(io_is_key_down(io, SDL_SCANCODE_Q)) {
         *io->quit = true;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_UP)) {
+        io->camera_pos->z += 1;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_DOWN)) {
+        io->camera_pos->z -= 1;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
+        io->camera_pos->x -= 1;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_RIGHT)) {
+        io->camera_pos->x += 1;
     }
 }

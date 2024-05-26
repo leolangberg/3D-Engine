@@ -254,6 +254,17 @@ void object_update_3d(Polygon3D* object3d) {
 	object3d->velocity->x = 0;
 	object3d->velocity->y = 0;
 	object3d->velocity->z = 0;
+
+
+	for(int i = 0; i < object3d->num_faces; i++) {
+		matrix_rotate_y(object3d->face_list[i]->vertice_matrix, object3d->center, (M_PI / 128));
+	}
+
+	for(int i = 0; i < object3d->num_faces; i++) {
+		matrix_rotate_x(object3d->face_list[i]->vertice_matrix, object3d->center, (M_PI / 265));
+	}
+
+	
 }
 
 /**

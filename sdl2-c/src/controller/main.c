@@ -26,6 +26,7 @@
 * State structure (taken from 'Programming a first person shooter from scratch like it's 1995' by 'jdh').
 * Holds a very simple SDL component structure for window, texture and renderer.
 * Also contains pixelmap of entire screen (creating a first quadrant screen).
+* Vector* camera_pos->z = camera distance.
 */
 static struct {
     SDL_Window *window;
@@ -34,7 +35,6 @@ static struct {
     uint32_t pixels[WINDOW_WIDTH * WINDOW_HEIGHT];
     bool quit;
     Vector* camera_pos;
-    int camera_distance;
     IO* io;
     struct {
         Polygon3D** object_list;
@@ -101,16 +101,15 @@ int main( int arc, char* args[] ) {
         "failed to create SDL texture %s\n",
         SDL_GetError());
 
-    state.camera_pos = vector_create(0, 0, 0);
-    state.camera_distance = 20;
-    state.io = io_create(&state.quit);
+    state.camera_pos = vector_create(0, 0, 20);
+    state.io = io_create(&state.quit, state.camera_pos);
 
     state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
     state.objects.list_length = 0;
     state.objects.add = (list_add);
     
 
-    Polygon3D* cube = object_create_cube(vector_create(100, 100, 100), 20);
+    Polygon3D* cube = object_create_cube(vector_create(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 50), 20);
     state.objects.add(cube);
 
     
@@ -133,7 +132,8 @@ int main( int arc, char* args[] ) {
         
         object_io(state.io, state.objects.object_list[0]);
         object_update_3d(state.objects.object_list[0]);
-        object_draw_3d(state.pixels, state.objects.object_list[0], state.camera_distance, color++);
+        //distance set to vector length of camera.
+        object_draw_3d(state.pixels, state.objects.object_list[0], vector_length(state.camera_pos), color++);
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(
@@ -149,10 +149,14 @@ int main( int arc, char* args[] ) {
         memset(state.pixels, 0, sizeof(state.pixels));
 
         char title[100];
-        snprintf(title, sizeof(title), "Coordinates: x=%.2f, y=%.2f, z=%.2f", 
+        snprintf(title, sizeof(title), "Object: x=%.2f, y=%.2f, z=%.2f || Camera: x=%.2f, y=%.2f, z=%.2f, length=%.2f", 
                     state.objects.object_list[0]->center->x, 
                     state.objects.object_list[0]->center->y, 
-                    state.objects.object_list[0]->center->z);
+                    state.objects.object_list[0]->center->z,
+                    state.camera_pos->x,
+                    state.camera_pos->y,
+                    state.camera_pos->z,
+                    vector_length(state.camera_pos));
         SDL_SetWindowTitle(state.window, title);
 
         frameTime = SDL_GetTicks64() - frameStart;
