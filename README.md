@@ -1,4 +1,4 @@
-# C-Engine
+# 3D-Engine
 SDL computer graphics engine in C that aims to implemented 3D using Linear Algebra and 90's style programming.
 
 <h4>Version 1.2</h4>
