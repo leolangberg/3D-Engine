@@ -148,5 +148,13 @@ Vector* vector_copy(const Vector* original) {
     return copy;
 }
 
+/**
+* Resets vector to all 0 values.
+*/
+Vector* vector_set_zero(Vector* v1) {
+    v1->x = 0; v1->y = 0; v1->z = 0;
+    return v1;
+}
+
 
 

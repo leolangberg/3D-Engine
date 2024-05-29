@@ -6,9 +6,6 @@
 #include "matrix.h"
 #include "vector.h"
 
-#define ROW 4
-#define COL 4
-
 /**
 * Prints Matrix.
 * Having incorrect %f or %d makes all printouts bugged.
@@ -642,7 +639,6 @@ void matrix_scale(Matrix* m1, Vector* center, float scale_factor) {
 * Each row x,y,z values are then divided by their equivalent d/z value.
 */
 void matrix_perspective_transformation(Matrix* m1, float distance) {
-    if(distance == 0) { return; }
     Matrix* perspective = matrix_create_identity_matrix();
     perspective->matrix[2][3] = 1 / distance;
     perspective->matrix[3][3] = 0;

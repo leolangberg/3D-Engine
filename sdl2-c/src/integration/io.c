@@ -122,20 +122,4 @@ void io_handle_events(IO* io) {
     if(io_is_key_down(io, SDL_SCANCODE_Q)) {
         *io->quit = true;
     }
-
-    if(io_is_key_down(io, SDL_SCANCODE_UP)) {
-        io->camera_pos->z += 1;
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_DOWN)) {
-        io->camera_pos->z -= 1;
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
-        io->camera_pos->x -= 1;
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_RIGHT)) {
-        io->camera_pos->x += 1;
-    }
 }

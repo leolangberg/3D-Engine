@@ -2,16 +2,26 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#define OBJECT_SPEED 1
-
 #include "vector.h"
 #include "matrix.h"
 #include <stdint.h>
 #include "../integration/io.h"
 
+#define OBJECT_SPEED 1
+
+/**
+* Declares all type of objects that can exist.
+* VECTOR for vectors, POLYGON for 2D polygons and POLYGON3D for 3D polygons.
+*/
+typedef enum{
+    VECTOR = 0,
+    POLYGON = 1,
+    POLYGON3D = 2
+}ObjectType;
+
 /**
 * Basic structure for all polygon variants.
-* State tells existance of object and num_verts tells number of vertices in object.
+* num_verts tells number of vertices in object.
 * A vector is placed for the center of the object, along with a velocity vector.
 * A list of vertices is then represented as a Matrix (for calculation).
 */
@@ -20,21 +30,42 @@ typedef struct{
     Vector* center;
     Vector* velocity;
     Matrix* vertice_matrix;
-    uint32_t color;
-
-    void (*update)();
-
 }Polygon;
 
+/**
+* Structure for 3D polygons (e.g. Cube).
+* A 3D polygon is built up of a collection of 2D polygons, therefore it needs
+* to keep track of number of faces and hold a list of all faces (2D polygons) used.
+* All vertices are placed out relative to the center and the radius as the distance.
+*/
 typedef struct{
     int num_faces;
     Polygon** face_list;
     Vector* center;
     float radius;
     Vector* velocity;
-
-    void (*update)();
 }Polygon3D;
+
+/**
+* Template Object Structure.
+* Can take on the form of a Vector, Polygon or Polygon3D.
+*/
+typedef struct{
+    ObjectType type;
+    union {
+        Polygon3D* polygon3D;
+        Polygon* polygon;
+        Vector* vector;
+    };
+}Object;
+
+/**
+* Creates an object by taking in the ENUM TYPE of object together with the actual
+* object structure.
+* @param enum_type type of object.
+* @param structure actual object struct.
+*/
+Object* object_create_object(int enum_type, void* structure);
 
 /**
 * Creates a object polygon structure that represents a Triangle.
@@ -68,53 +99,32 @@ Polygon3D* object_create_cube(Vector* position_center, float radius);
 
 /**
 * Handles object related IO input (Object controls).
+* Determines type of object the acts accordingly.
 */
-void object_io(IO* io, Polygon3D* object);
+void object_io(IO* io, Object* object);
 
 
 /**
-* Applies perspective on a 3D object the same as an object is scaled.
-* That is, by transforming the matrix to the origin,
-* peform scaling according to camera distance,
-* transform back to original position.
-* @param object3d object that perspective scaling is applied on.
-* @param distance represents camera distance.
+* Universal Object update function that determines type of object and acts accordingly.
+* Calls objects own specific update function pointer.
 */
-void object_perspective_3d(Polygon3D* object3d, float distance);
+void object_update(Object* object);
 
 
 /**
-* Creates a translation matrix out of the velocity vector and then 
-* performs matrix multiplication with current vertices to get new position.
-* Also performs vector addition to update object center.
+* Universal Draw function that determines type of object and acts accordingly.
+* @param pixelmap uint32_t array of pixels that represent the display.
+* @param object object to be drawn.
+* @param distance distance to object (for polygon3D only).
+* @param color uint32_t RGBA color.
 */
-void object_update(Polygon* object);
-
-/**
-* Updates 3D object by performing individual updates for all faces.
-* @param object3d 3D object to be update.
-* @param distance camera distance.
-*/
-void object_update_3d(Polygon3D* object3d);
-
-/**
-* Draws object onto the pixelmap screen by retrieving all vertices
-* and then drawing out the lines between them.
-*/
-void object_draw(uint32_t* pixelmap, Polygon* object, uint32_t color);
-
-/**
-* Creates a copy of original object then performs perspective calculation on said copy.
-* This copy (with correct perspective) is then sent to draw out each polygon inside this 3D polygon 
-* individually.
-*/
-void object_draw_3d(uint32_t* pixelmap, Polygon3D* object, float distance, uint32_t color);
+void object_draw(uint32_t* pixelmap, Object* object, float distance, uint32_t color);
 
 /**
 * Rotates object with give angle (radians).
 * Performs matrix multiplication with all 3 rotational matrices (R = Rz * Ry * Rx);
 */
-void object_rotate_3d(Polygon3D* object, float angle_radian);
+void object_polygon3d_rotate(Polygon3D* object, float angle_radian);
 
 /**
 * Copies given polygon.

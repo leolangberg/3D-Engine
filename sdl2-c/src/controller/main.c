@@ -1,20 +1,18 @@
+#include "../integration/display.h"
+#include "../integration/io.h"
+#include "../model/object.h"
+#include "SDL2/SDL_rect.h"
+#include "SDL2/SDL_render.h"
+#include <SDL2/SDL.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdbool.h>
-#include <SDL2/SDL.h>
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_error.h"
-#include "SDL2/SDL_events.h"
-#include "SDL2/SDL_pixels.h"
-#include "SDL2/SDL_render.h"
-#include "SDL2/SDL_video.h"
-#include "../integration/display.h"
-#include "SDL2/SDL2_gfxPrimitives.h"
-#include "../model/object.h"
-#include "../integration/io.h"
+#include <stdlib.h>
+#include <time.h>
 
 #define WINDOW_WIDTH 384
 #define WINDOW_HEIGHT 216
+#define ALL_PIXELS 82944
 #define FPS 60
 #define DELAY_TIME 1000.0f / FPS
 #define ASSERT(_e, ...) if (!(_e)) { fprintf(stderr, __VA_ARGS__); exit(1); }
@@ -36,13 +34,18 @@ static struct {
     bool quit;
     Vector* camera_pos;
     IO* io;
+
+    SDL_Texture *texture2;
+    uint32_t pixels2[WINDOW_WIDTH * WINDOW_HEIGHT];
+    int map[8][8];
     struct {
-        Polygon3D** object_list;
+        Object** object_list;
         int list_length;
         void (*add)();
     }objects;
 
 }state;
+
 
 /**
 * Function for adding objects to object list in 'state' struct.
@@ -101,18 +104,65 @@ int main( int arc, char* args[] ) {
         "failed to create SDL texture %s\n",
         SDL_GetError());
 
+    /* SDL_Rect uses window dimensions 1280x720 not pixel dimensions */
+    SDL_Rect srcrect;
+    SDL_Rect dstrect;
+
+    dstrect.x = WINDOW_WIDTH;
+    srcrect.x = 0;
+    dstrect.y = srcrect.y = 0;
+    dstrect.w = srcrect.w = 1280;
+    dstrect.h = srcrect.h = 720;
+
+
+    state.texture2 = 
+        SDL_CreateTexture(state.renderer,
+            SDL_PIXELFORMAT_ABGR8888, 
+            SDL_TEXTUREACCESS_STREAMING, 
+            WINDOW_WIDTH, 
+            WINDOW_HEIGHT);
+    ASSERT(
+        state.texture,
+        "failed to create SDL texture %s\n",
+        SDL_GetError());
+
+
+    SDL_Rect srcrect2;
+    SDL_Rect dstrect2;
+
+    dstrect2.x = srcrect2.x = 0;
+    dstrect2.y = dstrect2.y = 0;
+    dstrect2.w = srcrect2.w = WINDOW_WIDTH;
+    dstrect2.h = srcrect2.h = WINDOW_HEIGHT;
+
     state.camera_pos = vector_create(0, 0, 20);
     state.io = io_create(&state.quit, state.camera_pos);
 
     state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
     state.objects.list_length = 0;
     state.objects.add = (list_add);
-    
 
-    Polygon3D* cube = object_create_cube(vector_create(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 50), 20);
-    state.objects.add(cube);
+    /* Add Camera position vector as an object */
+    Object* camera = object_create_object(VECTOR, state.camera_pos);
+    list_add(camera);
 
-    
+
+    #define SECTOR_WIDTH = WINDOW_WIDTH / 8
+    #define SECTOR_HEIGHT = WINDOW_HEIGHT / 8
+
+    static int map[8 * 8] = 
+    {1, 1, 1, 1, 1, 1, 1, 1,
+     1, 0, 0, 0, 0, 0, 0, 1,
+     1, 1, 1, 1, 0, 0, 0, 1,
+     1, 0, 0, 0, 0, 0, 0, 1,
+     1, 0, 0, 0, 0, 0, 0, 1,
+     1, 0, 0, 0, 0, 0, 0, 1,
+     1, 0, 0, 0, 0, 0, 0, 1,
+     1, 1, 1, 1, 1, 1, 1, 1};
+
+
+    display_map(map, state.pixels2);
+
     /**
     * Engine Lifecycle loop.
     * 
@@ -129,18 +179,28 @@ int main( int arc, char* args[] ) {
         frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
 
         io_handle_events(state.io);
+        for(int i = 0; i < state.objects.list_length; i++) {
+            object_io(state.io, state.objects.object_list[i]);
+            object_update(state.objects.object_list[i]);
+            object_draw(state.pixels2, state.objects.object_list[i], 0, 0xFF44FF44);
+        }
         
-        object_io(state.io, state.objects.object_list[0]);
-        object_update_3d(state.objects.object_list[0]);
-        //distance set to vector length of camera.
-        object_draw_3d(state.pixels, state.objects.object_list[0], vector_length(state.camera_pos), color++);
 
-        SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
+        SDL_UpdateTexture(state.texture, &srcrect, state.pixels, WINDOW_WIDTH * 4);
+        SDL_UpdateTexture(state.texture2, &srcrect2, state.pixels2, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(
             state.renderer,
             state.texture,
+            &srcrect,
+            &dstrect,
+            0.0,
             NULL,
-            NULL,
+            SDL_FLIP_VERTICAL); //makes window 1st quadrant.
+        SDL_RenderCopyEx(
+            state.renderer,
+            state.texture2,
+            &srcrect2,
+            &dstrect2,
             0.0,
             NULL,
             SDL_FLIP_VERTICAL);
@@ -150,9 +210,9 @@ int main( int arc, char* args[] ) {
 
         char title[100];
         snprintf(title, sizeof(title), "Object: x=%.2f, y=%.2f, z=%.2f || Camera: x=%.2f, y=%.2f, z=%.2f, length=%.2f", 
-                    state.objects.object_list[0]->center->x, 
-                    state.objects.object_list[0]->center->y, 
-                    state.objects.object_list[0]->center->z,
+                    state.objects.object_list[0]->vector->x, 
+                    state.objects.object_list[0]->vector->y, 
+                    state.objects.object_list[0]->vector->z,
                     state.camera_pos->x,
                     state.camera_pos->y,
                     state.camera_pos->z,
@@ -162,7 +222,7 @@ int main( int arc, char* args[] ) {
         frameTime = SDL_GetTicks64() - frameStart;
         if(frameTime < DELAY_TIME) {
             SDL_Delay((int) (DELAY_TIME - frameTime));
-        }
+        }  
     }
 
     

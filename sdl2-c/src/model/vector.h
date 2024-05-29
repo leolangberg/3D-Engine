@@ -86,4 +86,9 @@ float vector_slope(const Vector* v1, const Vector* v2);
 */
 Vector* vector_copy(const Vector* original);
 
+/**
+* Resets vector to all 0 values.
+*/
+Vector* vector_set_zero(Vector* v1);
+
 #endif
