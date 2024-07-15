@@ -37,7 +37,6 @@ static struct {
 
     SDL_Texture *texture2;
     uint32_t pixels2[WINDOW_WIDTH * WINDOW_HEIGHT];
-    int map[8][8];
     struct {
         Object** object_list;
         int list_length;
@@ -104,16 +103,6 @@ int main( int arc, char* args[] ) {
         "failed to create SDL texture %s\n",
         SDL_GetError());
 
-    /* SDL_Rect uses window dimensions 1280x720 not pixel dimensions */
-    SDL_Rect srcrect;
-    SDL_Rect dstrect;
-
-    dstrect.x = WINDOW_WIDTH;
-    srcrect.x = 0;
-    dstrect.y = srcrect.y = 0;
-    dstrect.w = srcrect.w = 1280;
-    dstrect.h = srcrect.h = 720;
-
 
     state.texture2 = 
         SDL_CreateTexture(state.renderer,
@@ -127,14 +116,6 @@ int main( int arc, char* args[] ) {
         SDL_GetError());
 
 
-    SDL_Rect srcrect2;
-    SDL_Rect dstrect2;
-
-    dstrect2.x = srcrect2.x = 0;
-    dstrect2.y = dstrect2.y = 0;
-    dstrect2.w = srcrect2.w = WINDOW_WIDTH;
-    dstrect2.h = srcrect2.h = WINDOW_HEIGHT;
-
     state.camera_pos = vector_create(0, 0, 20);
     state.io = io_create(&state.quit, state.camera_pos);
 
@@ -145,23 +126,6 @@ int main( int arc, char* args[] ) {
     /* Add Camera position vector as an object */
     Object* camera = object_create_object(VECTOR, state.camera_pos);
     list_add(camera);
-
-
-    #define SECTOR_WIDTH = WINDOW_WIDTH / 8
-    #define SECTOR_HEIGHT = WINDOW_HEIGHT / 8
-
-    static int map[8 * 8] = 
-    {1, 1, 1, 1, 1, 1, 1, 1,
-     1, 0, 0, 0, 0, 0, 0, 1,
-     1, 1, 1, 1, 0, 0, 0, 1,
-     1, 0, 0, 0, 0, 0, 0, 1,
-     1, 0, 0, 0, 0, 0, 0, 1,
-     1, 0, 0, 0, 0, 0, 0, 1,
-     1, 0, 0, 0, 0, 0, 0, 1,
-     1, 1, 1, 1, 1, 1, 1, 1};
-
-
-    display_map(map, state.pixels2);
 
     /**
     * Engine Lifecycle loop.
@@ -186,24 +150,15 @@ int main( int arc, char* args[] ) {
         }
         
 
-        SDL_UpdateTexture(state.texture, &srcrect, state.pixels, WINDOW_WIDTH * 4);
-        SDL_UpdateTexture(state.texture2, &srcrect2, state.pixels2, WINDOW_WIDTH * 4);
+        SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(
             state.renderer,
             state.texture,
-            &srcrect,
-            &dstrect,
+            NULL,
+            NULL,
             0.0,
             NULL,
             SDL_FLIP_VERTICAL); //makes window 1st quadrant.
-        SDL_RenderCopyEx(
-            state.renderer,
-            state.texture2,
-            &srcrect2,
-            &dstrect2,
-            0.0,
-            NULL,
-            SDL_FLIP_VERTICAL);
         SDL_RenderPresent(state.renderer);
 
         memset(state.pixels, 0, sizeof(state.pixels));
