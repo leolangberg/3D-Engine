@@ -78,10 +78,12 @@ Vector* vector_sub(const Vector* v1, const Vector* v2) {
 /**
 * Multiplies a vector with a Scalar.
 */
-void vector_scale(Vector* v1, float scalar) {
-    v1->x = v1->x * scalar;
-    v1->y = v1->y * scalar;
-    v1->z = v1->z * scalar;
+Vector* vector_scale(Vector* v1, float scalar) {
+    Vector* vec = malloc(sizeof(Vector));
+    vec->x = v1->x * scalar;
+    vec->y = v1->y * scalar;
+    vec->z = v1->z * scalar;
+    return vec;
 }
 
 /**

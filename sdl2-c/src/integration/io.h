@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include "../model/vector.h"
+#include "../model/camera.h"
 #include "SDL2/SDL_keyboard.h"
 
 #define MOUSE_LEFT 0
@@ -14,6 +15,7 @@
 
 /**
 * IO structure.
+* Idea is for an IO to correspond to 1 single vector (target) onto which the IO will act on. 
 * 
 * Vector of current mouse position.
 * Array of current mouse button state.
@@ -25,17 +27,18 @@ typedef struct{
     bool mousebutton_state[3];
     const Uint8* keystate;
     bool* quit;
-    Vector* camera_pos;
+    Camera* target_camera;
 }IO;
 
 /**
 * Creates a new instance of IO.
+* Idea is for an IO to correspond to camera (target) onto which the IO will act on. 
 *
 * Sets keystate as an array to hold current keyboardstate.
 * Mousebutton state array is set to false.
 * Initalizes vector for mouseposition.
 */
-IO* io_create(bool* quit, Vector* camera_pos);
+IO* io_create(bool* quit, Camera* target_camera);
 
 /**
 * Checks whether specific key is pressed given current keyboard state.

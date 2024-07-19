@@ -1,6 +1,7 @@
 #include "../integration/display.h"
 #include "../integration/io.h"
 #include "../model/object.h"
+#include "../model/camera.h"
 #include "SDL2/SDL_rect.h"
 #include "SDL2/SDL_render.h"
 #include <SDL2/SDL.h>
@@ -20,6 +21,43 @@
 #define OBJECT_LIST_MAX_SIZE 10
 
 
+
+#define mapWidth 24
+#define mapHeight 24
+#define screenWidth 640
+#define screenHeight 480
+
+
+int worldMap[mapWidth][mapHeight]=
+{
+  {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1},
+  {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,3,0,0,0,3,0,0,0,1},
+  {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,2,2,0,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,4,0,0,0,0,5,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,4,0,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+  {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+};
+
+
+
 /**
 * State structure (taken from 'Programming a first person shooter from scratch like it's 1995' by 'jdh').
 * Holds a very simple SDL component structure for window, texture and renderer.
@@ -32,11 +70,8 @@ static struct {
     SDL_Renderer *renderer;
     uint32_t pixels[WINDOW_WIDTH * WINDOW_HEIGHT];
     bool quit;
-    Vector* camera_pos;
+    Camera* camera;
     IO* io;
-
-    SDL_Texture *texture2;
-    uint32_t pixels2[WINDOW_WIDTH * WINDOW_HEIGHT];
     struct {
         Object** object_list;
         int list_length;
@@ -44,7 +79,6 @@ static struct {
     }objects;
 
 }state;
-
 
 /**
 * Function for adding objects to object list in 'state' struct.
@@ -79,8 +113,8 @@ int main( int arc, char* args[] ) {
     state.window = SDL_CreateWindow("DEMO",
                    SDL_WINDOWPOS_CENTERED_DISPLAY(0), 
                    SDL_WINDOWPOS_CENTERED_DISPLAY(0), 
-                   1280, 
-                   720,
+                   1280,    //previously used 1280
+                   720,     //previously used 720
                    SDL_WINDOW_ALLOW_HIGHDPI);
     ASSERT(
         state.window,
@@ -103,29 +137,17 @@ int main( int arc, char* args[] ) {
         "failed to create SDL texture %s\n",
         SDL_GetError());
 
-
-    state.texture2 = 
-        SDL_CreateTexture(state.renderer,
-            SDL_PIXELFORMAT_ABGR8888, 
-            SDL_TEXTUREACCESS_STREAMING, 
-            WINDOW_WIDTH, 
-            WINDOW_HEIGHT);
-    ASSERT(
-        state.texture,
-        "failed to create SDL texture %s\n",
-        SDL_GetError());
-
-
-    state.camera_pos = vector_create(0, 0, 20);
-    state.io = io_create(&state.quit, state.camera_pos);
+    state.camera = malloc(sizeof(Camera));
+    state.camera->position = vector_create(12, 12, 0);
+    state.camera->direction = vector_create(-1, 0, 0);
+    state.camera->camera_plane = vector_create(0, 1, 0); //perpendicular to direction. (90')
+    state.camera->speed = 0.1;
+    
+    state.io = io_create(&state.quit, state.camera);
 
     state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
     state.objects.list_length = 0;
     state.objects.add = (list_add);
-
-    /* Add Camera position vector as an object */
-    Object* camera = object_create_object(VECTOR, state.camera_pos);
-    list_add(camera);
 
     /**
     * Engine Lifecycle loop.
@@ -137,18 +159,12 @@ int main( int arc, char* args[] ) {
     * Applies delay based on 64 tick.
     */
     uint64_t frameStart, frameTime;
-    uint32_t color = 0x0000AAFF;
     while(!state.quit)
     {
         frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
-
         io_handle_events(state.io);
-        for(int i = 0; i < state.objects.list_length; i++) {
-            object_io(state.io, state.objects.object_list[i]);
-            object_update(state.objects.object_list[i]);
-            object_draw(state.pixels2, state.objects.object_list[i], 0, 0xFF44FF44);
-        }
-        
+
+        raycasting_algorithm(state.camera, worldMap, state.pixels);
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(
@@ -162,16 +178,19 @@ int main( int arc, char* args[] ) {
         SDL_RenderPresent(state.renderer);
 
         memset(state.pixels, 0, sizeof(state.pixels));
-
         char title[100];
-        snprintf(title, sizeof(title), "Object: x=%.2f, y=%.2f, z=%.2f || Camera: x=%.2f, y=%.2f, z=%.2f, length=%.2f", 
-                    state.objects.object_list[0]->vector->x, 
-                    state.objects.object_list[0]->vector->y, 
-                    state.objects.object_list[0]->vector->z,
-                    state.camera_pos->x,
-                    state.camera_pos->y,
-                    state.camera_pos->z,
-                    vector_length(state.camera_pos));
+        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || Plane: x=%.2f, y=%.2f, z=%.2f", 
+                    state.camera->position->x, 
+                    state.camera->position->y, 
+                    state.camera->position->z,
+                    
+                    state.camera->direction->x,
+                    state.camera->direction->y,
+                    state.camera->direction->z,
+                    
+                    state.camera->camera_plane->x,
+                    state.camera->camera_plane->y,
+                    state.camera->camera_plane->z);
         SDL_SetWindowTitle(state.window, title);
 
         frameTime = SDL_GetTicks64() - frameStart;
@@ -180,11 +199,10 @@ int main( int arc, char* args[] ) {
         }  
     }
 
-    
     SDL_DestroyTexture(state.texture);
     SDL_DestroyRenderer(state.renderer);
     SDL_DestroyWindow(state.window);
     SDL_Quit();
-
     return 0;
 }
+

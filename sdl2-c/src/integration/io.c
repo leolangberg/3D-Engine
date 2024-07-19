@@ -1,20 +1,23 @@
 #include "io.h"
 #include "SDL2/SDL_keyboard.h"
 #include "SDL2/SDL_scancode.h"
+#include "../model/matrix.h"
+#include <math.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
 
 /**
 * Creates a new instance of IO.
+* Idea is for an IO to correspond to camera (target) onto which the IO will act on. 
 *
 * Sets keystate as an array to hold current keyboardstate.
 * Mousebutton state array is set to false.
 * Initalizes vector for mouseposition.
 * Sets quit callback function.
-* @param callback engine function for SDL_QUIT.
 */
-IO* io_create(bool* quit, Vector* camera_pos) {
+IO* io_create(bool* quit, Camera* target_vector) {
     IO* io = malloc(sizeof(IO));
     io->keystate = SDL_GetKeyboardState(0);
     io->mouse_positon = vector_create(0, 0, 0);
@@ -22,7 +25,7 @@ IO* io_create(bool* quit, Vector* camera_pos) {
         io->mousebutton_state[i] = false;
     }
     io->quit = quit;
-    io->camera_pos = camera_pos;
+    io->target_camera = target_vector;
     return io;
 }
 
@@ -121,5 +124,50 @@ void io_handle_events(IO* io) {
 
     if(io_is_key_down(io, SDL_SCANCODE_Q)) {
         *io->quit = true;
+    }
+
+    Vector* movement = vector_scale(io->target_camera->direction, io->target_camera->speed);
+
+    /* Moves forward by adding direction vector to current position */
+    if(io_is_key_down(io, SDL_SCANCODE_W)) {
+        io->target_camera->position = vector_add(io->target_camera->position, movement);
+    }
+    /* Moves backward by subtracting direction vector from current position */
+    if(io_is_key_down(io, SDL_SCANCODE_S)) {
+        io->target_camera->position = vector_sub(movement, io->target_camera->position);
+    }
+    /* Moves left by adding (direction * 90 degrees) to current position */
+    if(io_is_key_down(io, SDL_SCANCODE_D)) {
+        Vector* leftdir = vector_rotate(movement, io->target_camera->position, (M_PI / 2));
+        io->target_camera->position = vector_add(io->target_camera->position, leftdir);
+    }
+    /* Moves right by adding (direction * 90 degrees) to current position */
+    if(io_is_key_down(io, SDL_SCANCODE_A)) {
+        Vector* rightdir = vector_rotate(movement, io->target_camera->position, -(M_PI / 2));
+        io->target_camera->position = vector_add(io->target_camera->position, rightdir);
+    }
+
+    /**
+    * Rotates direction & camera_plane vectors clockwise.
+    */
+    if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
+    
+        io->target_camera->direction = vector_rotate(io->target_camera->direction, io->target_camera->position, -(M_PI / 128));
+        io->target_camera->camera_plane = vector_rotate(io->target_camera->camera_plane, io->target_camera->position, -(M_PI / 128));
+        io->target_camera->direction->z = 0;
+        io->target_camera->camera_plane->z = 0;
+
+    }
+
+    /**
+    * Rotates direction & camera_plane vectors counter-clockwise.
+    */
+    if(io_is_key_down(io, SDL_SCANCODE_RIGHT)) {
+       
+        io->target_camera->direction = vector_rotate(io->target_camera->direction, io->target_camera->position, (M_PI / 128));
+        io->target_camera->camera_plane = vector_rotate(io->target_camera->camera_plane, io->target_camera->position, (M_PI / 128));
+        io->target_camera->direction->z = 0;
+        io->target_camera->camera_plane->z = 0;
+
     }
 }

@@ -52,7 +52,7 @@ Vector* vector_sub(const Vector* v1, const Vector* v2);
 /**
 * Multiplies a vector with a Scalar.
 */
-void vector_scale(Vector* v1, float scalar);
+Vector* vector_scale(Vector* v1, float scalar);
 
 /**
 * Negates vector direction by multiplying each component with (-1).

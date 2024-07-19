@@ -81,22 +81,22 @@ Matrix* matrix_create_rotation_matrix(float angle_radian);
 * @param point_of_rotation vector on which the rotation will be performed.
 * @param angle_radian angle of rotation (radians).
 */
-void matrix_rotate(Matrix *m, Vector* point_of_rotation, float angle_radian);
+void matrix_rotate(Matrix *m, const Vector* point_of_rotation, float angle_radian);
 
 /**
 * Rotates matrix along z axis only.
 */
-void matrix_rotate_z(Matrix* m1, Vector* point_of_rotation, float angle_radian);
+void matrix_rotate_z(Matrix* m1, const Vector* point_of_rotation, float angle_radian);
 
 /**
 * Rotates matrix along y axis only.
 */
-void matrix_rotate_y(Matrix* m1, Vector* point_of_rotation, float angle_radian);
+void matrix_rotate_y(Matrix* m1, const Vector* point_of_rotation, float angle_radian);
 
 /**
 * Rotates matrix along x axis only.
 */
-void matrix_rotate_x(Matrix* m1, Vector* point_of_rotation, float angle_radian);
+void matrix_rotate_x(Matrix* m1, const Vector* point_of_rotation, float angle_radian);
 
 /**
 * Compares 2 Matrices to see if they are equal.
@@ -122,12 +122,14 @@ void matrix_inverse(Matrix* A);
 
 /**
 * Collects specific column and returns it as a vector.
+* @param col choose between columns 0-2.
 * @return vector of column.
 */
 Vector* vector_from_matrix_col(const Matrix* m1, int col);
 
 /**
 * Collects specific row and returns it as a vector.
+* @param row choose between rows 0-2.
 * @return vector of row.
 */
 Vector* vector_from_matrix_row(const Matrix* m1, int row);
@@ -144,6 +146,11 @@ Matrix* vector_as_matrix(const Vector* v1);
 * @param array_length length of vector array.
 */
 Matrix* vectors_as_matrix(const Vector** array_of_vectors, int array_length);
+
+/**
+* Rotates vector via matrix rotation (Z-rotation or "2D rotation").
+*/
+Vector* vector_rotate(const Vector* v, const Vector* point_of_rotation, float angle_rad);
 
 /**
 * Scales all matrix values by said scale_factor.

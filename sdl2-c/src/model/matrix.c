@@ -214,7 +214,7 @@ Matrix* matrix_create_rotation_matrix_y(float angle_radian) {
 * @param point_of_rotation vector on which the rotation will be performed.
 * @param angle_radian angle of rotation (radians).
 */
-void matrix_rotate(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
+void matrix_rotate(Matrix* m1, const Vector* point_of_rotation, float angle_radian) {
     Vector p_negate = *point_of_rotation;
     vector_negate(&p_negate);
     Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
@@ -240,7 +240,7 @@ void matrix_rotate(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
 /**
 * Rotates matrix along z axis only.
 */
-void matrix_rotate_z(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
+void matrix_rotate_z(Matrix* m1, const Vector* point_of_rotation, float angle_radian) {
     Vector p_negate = *point_of_rotation;
     vector_negate(&p_negate);
     Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
@@ -260,7 +260,7 @@ void matrix_rotate_z(Matrix* m1, Vector* point_of_rotation, float angle_radian) 
 /**
 * Rotates matrix along y axis only.
 */
-void matrix_rotate_y(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
+void matrix_rotate_y(Matrix* m1, const Vector* point_of_rotation, float angle_radian) {
     Vector p_negate = *point_of_rotation;
     vector_negate(&p_negate);
     Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
@@ -280,7 +280,7 @@ void matrix_rotate_y(Matrix* m1, Vector* point_of_rotation, float angle_radian) 
 /**
 * Rotates matrix along x axis only.
 */
-void matrix_rotate_x(Matrix* m1, Vector* point_of_rotation, float angle_radian) {
+void matrix_rotate_x(Matrix* m1, const Vector* point_of_rotation, float angle_radian) {
     Vector p_negate = *point_of_rotation;
     vector_negate(&p_negate);
     Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
@@ -569,7 +569,37 @@ Matrix* vector_as_matrix(const Vector* v1) {
     result->matrix[0][0] = v1->x;
     result->matrix[0][1] = v1->y;
     result->matrix[0][2] = v1->z;
+    result->matrix[0][3] = 0;
+
+    result->matrix[1][0] = 0;
+    result->matrix[1][1] = 0;
+    result->matrix[1][2] = 0;
+    result->matrix[1][3] = 0;
+
+    result->matrix[2][0] = 0;
+    result->matrix[2][1] = 0;
+    result->matrix[2][2] = 0;
+    result->matrix[2][3] = 0;
+
+    result->matrix[3][0] = 0;
+    result->matrix[3][1] = 0;
+    result->matrix[3][2] = 0;
+    result->matrix[3][3] = 0;
+
     return result;
+}
+
+/**
+* Rotates vector via matrix rotation (Z-rotation or "2D rotation").
+*/
+Vector* vector_rotate(const Vector* v, const Vector* point_of_rotation, float angle_rad) {
+    
+    Vector* vec = malloc(sizeof(Vector));
+    Matrix* rotM = vector_as_matrix(v);
+    matrix_rotate_z(rotM, point_of_rotation, angle_rad);
+    vec = vector_from_matrix_row(rotM, 0);
+    return vec;
+   
 }
 
 /**
