@@ -35,6 +35,6 @@ void display_draw_line(uint32_t* pixelmap, const Vector* v1, const Vector* v2, u
 * calculated and everything inbetween rendered with corresponding color.
 * 
 */
-void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap);
+void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap, int texture[8][64 * 63 + 63]);
 
 #endif

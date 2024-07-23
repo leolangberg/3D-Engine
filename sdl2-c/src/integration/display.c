@@ -1,4 +1,5 @@
 #include "display.h"
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -129,6 +130,7 @@ void display_draw_line(uint32_t* pixelmap, const Vector* v1, const Vector* v2, u
 
 /**
 * Raycasting Algorithm
+* https://lodev.org/cgtutor/raycasting.html
 *
 * For each x in width (of pixelmap) a distance to objects infront can be determined (thus Renders vertical).
 * To begin with the rays direction is determined by adding the position together with the player direction and 
@@ -139,9 +141,11 @@ void display_draw_line(uint32_t* pixelmap, const Vector* v1, const Vector* v2, u
 *
 * Finally the wall height can be determined by dividing pixelmap height by perpWallDist. The start and end points of this vertical line is then 
 * calculated and everything inbetween rendered with corresponding color.
+*
+* Side 0 = x-direction and side 1 = y-direction.
 * 
 */
-void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap) {
+void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap, int texture[8][64 * 63 + 63]) {
    
     int w = WINDOW_WIDTH;
     int h = WINDOW_HEIGHT;
@@ -160,7 +164,11 @@ void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelm
         float sideDistX;
         float sideDistY;
 
-        //length of ray from one x or y-side to next x or y-side.
+        /**
+        * length of ray from one x or y-side to next x or y-side.
+        * deltaDistX = sqrt(1 + (rayDirY * rayDirY) / (rayDirX * rayDirX))
+        * deltaDistY = sqrt(1 + (rayDirX * rayDirX) / (rayDirY * rayDirY))
+        */
         float deltaDistX = (rayDirX == 0) ? 1e30 : fabs(1 / rayDirX); //? in case division by 0.
         float deltaDistY = (rayDirY == 0) ? 1e30 : fabs(1 / rayDirY);
         float perpWallDist;
@@ -170,7 +178,7 @@ void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelm
         int stepY;
 
         int hit = 0;    //was there a wall hit?
-        int side;   //was a NS or a EW wall hit?
+        int side;   //was a North-South or a East-West wall hit?
 
             //calculate step and initial sideDist
         if (rayDirX < 0)
@@ -224,33 +232,61 @@ void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelm
         }
 
         //Calculate height of line to draw on screen
-        int lineHeight = (int)( h / perpWallDist);
+        int lineHeight = (int)(h / perpWallDist);
 
         //calculate lowest and highest pixel to fill in current stripe
         int drawStart = -lineHeight / 2 + h / 2;
-        if(drawStart < 0)drawStart = 0;
+        if(drawStart < 0) {
+            drawStart = 0;
+        }
         int drawEnd = lineHeight / 2 + h / 2;
-        if(drawEnd >= h)drawEnd = h - 1;
+        if(drawEnd >= h) {
+            drawEnd = h - 1;
+        }
 
+        /**
+        * Addition for textured raycasters 
+        */
 
-        //choose wall color
-        u_int32_t color;
-        switch(worldmap[mapX][mapY])
+        
+        //if you go outside the map then this worldmap value and thus texture_number becomes screwed.
+        int texture_number = worldmap[mapX][mapY] - 1;
+
+        //calculate value of wallX
+        float wallX;
+        if(side == 0) {
+            wallX = camera->position->y + perpWallDist * rayDirY;
+        } else {
+            wallX = camera->position->x + perpWallDist * rayDirX;
+        }
+        wallX -= floorf(wallX);
+
+        //x coordinate on the texture
+        int textureX = wallX * 64;
+        if(side == 0 && rayDirX > 0) {
+            textureX = 64 - textureX - 1;
+        }
+        if(side == 1 && rayDirY < 0) {
+            textureX = 64 - textureX - 1;
+        }
+
+        //how much to increase the texture coordinate per screen pixel.
+        float step = 64.0 / lineHeight;
+        //starting texture coordinate
+        float texture_pos = (drawStart - (float) h  / 2 + (float) lineHeight / 2) * step;
+        for(int y = drawStart; y < drawEnd; y++) 
         {
-            case 1:  color = 0xFF0000FF;  break; //red
-            case 2:  color = 0x00FF00FF;  break; //green
-            case 3:  color = 0x0000FFFF;   break; //blue
-            case 4:  color = 0xFFFFFFFF;  break; //white
-            default: color = 0xFFFF99FF; break; //yellow
-        }
+            //Cast the texture coordinate to integer, and mask with TEXTUREHEIGHT (64) - 1 in case of overflow
+            int textureY = (int) texture_pos & (64 - 1);
+            texture_pos += step;
+            uint32_t color = texture[texture_number][64 * textureY + textureX]; //segment fault 11.
 
-        //give x and y sides different brightness
-        if (side == 1) {color = color / 2;}
-
-        //draw the pixels of the stripe as a vertical line
-        for(int i = drawStart; i < drawEnd; i++) {
-            display_draw_pixel(pixelmap, x, i, color);
+            //make y-dir colors slight darker
+            if(side == 1) {
+                color = (color / 2);
+            }
+            //no point in having a buffer as pixels are already drawn one by one. 
+            display_draw_pixel(pixelmap, x, y, color);
         }
-    
     }
 }

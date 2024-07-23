@@ -28,6 +28,7 @@ typedef struct{
     const Uint8* keystate;
     bool* quit;
     Camera* target_camera;
+    int map[24][24];
 }IO;
 
 /**
@@ -38,7 +39,7 @@ typedef struct{
 * Mousebutton state array is set to false.
 * Initalizes vector for mouseposition.
 */
-IO* io_create(bool* quit, Camera* target_camera);
+IO* io_create(bool* quit, Camera* target_camera, int map[24][24]);
 
 /**
 * Checks whether specific key is pressed given current keyboard state.

@@ -71,6 +71,11 @@ void vector_normalize(Vector* v1);
 float vector_dot_product(const Vector* v1, const Vector* v2);
 
 /**
+* Computes Dot product and returns the result as a new vector.
+*/
+Vector* vector_dot_product_vector(const Vector* v1, const Vector* v2);
+
+/**
 * Computes the Cross product of 2 vectors and returns the a new result vector.
 * @return cross product vector.
 */
@@ -90,5 +95,14 @@ Vector* vector_copy(const Vector* original);
 * Resets vector to all 0 values.
 */
 Vector* vector_set_zero(Vector* v1);
+
+/**
+* Determines (2D) intersection of 2 lines (4 points) using Bezier parameters (s, t).
+* @return vector with intersection coordinates. 
+*/
+Vector* vector_intersect_2d(const Vector* v0, const Vector* v1, const Vector* w0, const Vector* w1);
+
+Vector* get_line_intersection(float p0_x, float p0_y, float p1_x, float p1_y, 
+    float p2_x, float p2_y, float p3_x, float p3_y);
 
 #endif
