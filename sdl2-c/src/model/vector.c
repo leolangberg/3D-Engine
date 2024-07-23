@@ -1,4 +1,5 @@
 #include "vector.h"
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -116,6 +117,13 @@ float vector_dot_product(const Vector* v1, const Vector* v2) {
 }
 
 /**
+* Computes Dot product and returns the result as a new vector.
+*/
+Vector* vector_dot_product_vector(const Vector* v1, const Vector* v2) {
+    return vector_create((v1->x * v2->x), (v1->y * v2->y), (v1->z * v2->z));
+}
+
+/**
 * Computes the Cross product of 2 vectors and returns the a new result vector.
 * @return cross product vector.
 */
@@ -156,6 +164,27 @@ Vector* vector_copy(const Vector* original) {
 Vector* vector_set_zero(Vector* v1) {
     v1->x = 0; v1->y = 0; v1->z = 0;
     return v1;
+}
+
+
+/**
+* Determines (2D) intersection of 2 lines (4 points) using Bezier parameters (s, t).
+* @return vector with intersection coordinates. 
+*/
+Vector* vector_intersect_2d(const Vector* v0, const Vector* v1, const Vector* w0, const Vector* w1) {
+  
+    Vector* s1 = vector_create((v1->x - v0->x), (v1->y - v0->y), 0);
+    Vector* s2 = vector_create((w1->x - w0->x), (w1->y - w0->y), 0);
+
+    float s, t;
+    s = ((-s1->y) * (v0->x - w0->x) + s1->x * (v0->y - w0->y)) / ((-s2->x) * s1->y + s1->x * s2->y);
+    t = (s2->x * (v0->x - w0->y) - s2->y * (v0->x - w0->x)) / ((-s2->x) * s1->y + s1->x * s2->y);
+
+    // check that lines actually intersect.
+    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+       return vector_create((v0->x + (t * s1->x)), (v0->y + (t * s1->y)), 0);   
+    } 
+    return vector_create(NAN,NAN,NAN);
 }
 
 

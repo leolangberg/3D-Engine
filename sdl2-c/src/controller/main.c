@@ -11,24 +11,26 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define ASSERT(_e, ...) if (!(_e)) { fprintf(stderr, __VA_ARGS__); exit(1); }
+#define SCREENWIDTH 1280
+#define SCREENHEIGHT 720
 #define WINDOW_WIDTH 384
 #define WINDOW_HEIGHT 216
 #define ALL_PIXELS 82944
 #define FPS 60
 #define DELAY_TIME 1000.0f / FPS
-#define ASSERT(_e, ...) if (!(_e)) { fprintf(stderr, __VA_ARGS__); exit(1); }
 
 #define OBJECT_LIST_MAX_SIZE 10
 
+#define MAPWIDTH 24
+#define MAPHEIGHT 24
+#define TEXTURE_WIDTH 64
+#define TEXTURE_HEIGHT 64
 
 
-#define mapWidth 24
-#define mapHeight 24
-#define screenWidth 640
-#define screenHeight 480
 
 
-int worldMap[mapWidth][mapHeight]=
+int worldMap[MAPWIDTH][MAPHEIGHT]=
 {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
   {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
@@ -55,6 +57,9 @@ int worldMap[mapWidth][mapHeight]=
   {1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 };
+
+//no point in having a buffer as pixels are already drawn one by one. 
+int texture[8][TEXTURE_WIDTH * (TEXTURE_HEIGHT - 1) + (TEXTURE_WIDTH - 1)];
 
 
 
@@ -89,6 +94,41 @@ void list_add(void* object) {
     state.objects.list_length++;
 }
 
+void init() {
+
+    state.camera = malloc(sizeof(Camera));
+    state.camera->position = vector_create(12, 12, 0);
+    state.camera->direction = vector_create(-1, 0, 0);
+    state.camera->camera_plane = vector_create(0, 1, 0); //perpendicular to direction. (90')
+    state.camera->speed = 0.1;
+    
+    state.io = io_create(&state.quit, state.camera, worldMap);
+
+    state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
+    state.objects.list_length = 0;
+    state.objects.add = (list_add);
+
+
+    for(int x = 0; x < TEXTURE_WIDTH; x++)
+    {
+        for(int y = 0; y < TEXTURE_HEIGHT; y++)
+        {
+            int xorcolor = (x * 256 / TEXTURE_WIDTH) ^ (y * 256 / TEXTURE_HEIGHT);
+            //int xcolor = x * 256 / texWidth;
+            int ycolor = y * 256 / TEXTURE_HEIGHT;
+            int xycolor = y * 128 / TEXTURE_HEIGHT + x * 128 / TEXTURE_WIDTH;
+            texture[0][TEXTURE_WIDTH * y + x] = 65536 * 254 * (x != y && x != TEXTURE_WIDTH - y); //flat red texture with black cross
+            texture[1][TEXTURE_WIDTH * y + x] = xycolor + 256 * xycolor + 65536 * xycolor; //sloped greyscale
+            texture[2][TEXTURE_WIDTH * y + x] = 256 * xycolor + 65536 * xycolor; //sloped yellow gradient
+            texture[3][TEXTURE_WIDTH * y + x] = xorcolor + 256 * xorcolor + 65536 * xorcolor; //xor greyscale
+            texture[4][TEXTURE_WIDTH * y + x] = 256 * xorcolor; //xor green
+            texture[5][TEXTURE_WIDTH * y + x] = 65536 * 192 * (x % 16 && y % 16); //red bricks
+            texture[6][TEXTURE_WIDTH * y + x] = 65536 * ycolor; //red gradient
+            texture[7][TEXTURE_WIDTH * y + x] = 128 + 256 * 128 + 65536 * 128; //flat grey texture
+        }
+    }
+}
+
 
 /**
 * Main method
@@ -113,8 +153,8 @@ int main( int arc, char* args[] ) {
     state.window = SDL_CreateWindow("DEMO",
                    SDL_WINDOWPOS_CENTERED_DISPLAY(0), 
                    SDL_WINDOWPOS_CENTERED_DISPLAY(0), 
-                   1280,    //previously used 1280
-                   720,     //previously used 720
+                   SCREENWIDTH,
+                   SCREENHEIGHT,   
                    SDL_WINDOW_ALLOW_HIGHDPI);
     ASSERT(
         state.window,
@@ -137,17 +177,8 @@ int main( int arc, char* args[] ) {
         "failed to create SDL texture %s\n",
         SDL_GetError());
 
-    state.camera = malloc(sizeof(Camera));
-    state.camera->position = vector_create(12, 12, 0);
-    state.camera->direction = vector_create(-1, 0, 0);
-    state.camera->camera_plane = vector_create(0, 1, 0); //perpendicular to direction. (90')
-    state.camera->speed = 0.1;
-    
-    state.io = io_create(&state.quit, state.camera);
+    init();
 
-    state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
-    state.objects.list_length = 0;
-    state.objects.add = (list_add);
 
     /**
     * Engine Lifecycle loop.
@@ -164,7 +195,7 @@ int main( int arc, char* args[] ) {
         frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
         io_handle_events(state.io);
 
-        raycasting_algorithm(state.camera, worldMap, state.pixels);
+        raycasting_algorithm(state.camera, worldMap, state.pixels, texture);
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(
