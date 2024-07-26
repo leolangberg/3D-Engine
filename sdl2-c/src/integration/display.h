@@ -5,6 +5,7 @@
 #include "../model/vector.h"
 #include "../model/camera.h"
 #include <stdint.h>
+#include "../model/sector.h"
 
 #define WINDOW_WIDTH 384
 #define WINDOW_HEIGHT 216
@@ -35,6 +36,6 @@ void display_draw_line(uint32_t* pixelmap, const Vector* v1, const Vector* v2, u
 * calculated and everything inbetween rendered with corresponding color.
 * 
 */
-void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap, int texture[8][64 * 63 + 63]);
+void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap);
 
 #endif

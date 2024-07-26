@@ -62,7 +62,7 @@ void vector_negate(Vector* v1);
 /**
 * Normalizes the vector (scale with magnutide of itself).
 */
-void vector_normalize(Vector* v1);
+Vector* vector_normalize(Vector* v1);
 
 /**
 * Computes the Dot product of 2 vectors (sum the product all axis).

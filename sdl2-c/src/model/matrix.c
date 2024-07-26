@@ -261,16 +261,20 @@ void matrix_rotate_z(Matrix* m1, const Vector* point_of_rotation, float angle_ra
 * Rotates matrix along y axis only.
 */
 void matrix_rotate_y(Matrix* m1, const Vector* point_of_rotation, float angle_radian) {
+    printf("rotation start\n");
     Vector p_negate = *point_of_rotation;
     vector_negate(&p_negate);
     Matrix* translate_to_origin = matrix_create_translation_matrix(&p_negate);
     *m1 = *(matrix_mul(m1, translate_to_origin));  
+    matrix_print(m1);
 
     Matrix* rot_y = matrix_create_rotation_matrix_y(angle_radian);
     *m1 = *(matrix_mul(m1, rot_y)); 
+    matrix_print(m1);
 
     Matrix* translate_back = matrix_create_translation_matrix(point_of_rotation);
     *m1 = *(matrix_mul(m1, translate_back)); 
+    matrix_print(m1);
 
     free(rot_y);
     free(translate_to_origin);
@@ -536,11 +540,11 @@ void matrix_gauss_jordan_elimination(Matrix* A, Matrix* B) {
 * Uses Gauss-Jordan Elimination then retrieves the new Inverse 
 * to the Matrix A.
 */
-void matrix_inverse(Matrix* A) {
+Matrix* matrix_inverse(Matrix* A) {
     Matrix* m1 = A;
     Matrix* inverse = matrix_create_identity_matrix();
     matrix_gauss_jordan_elimination(m1, inverse);
-    *A = *inverse;
+    return inverse;
 }
 
 /**
@@ -569,24 +573,28 @@ Matrix* vector_as_matrix(const Vector* v1) {
     result->matrix[0][0] = v1->x;
     result->matrix[0][1] = v1->y;
     result->matrix[0][2] = v1->z;
-    result->matrix[0][3] = 0;
+    result->matrix[0][3] = 1;
 
     result->matrix[1][0] = 0;
     result->matrix[1][1] = 0;
     result->matrix[1][2] = 0;
-    result->matrix[1][3] = 0;
+    result->matrix[1][3] = 1;
 
     result->matrix[2][0] = 0;
     result->matrix[2][1] = 0;
     result->matrix[2][2] = 0;
-    result->matrix[2][3] = 0;
+    result->matrix[2][3] = 1;
 
     result->matrix[3][0] = 0;
     result->matrix[3][1] = 0;
     result->matrix[3][2] = 0;
-    result->matrix[3][3] = 0;
+    result->matrix[3][3] = 1;
 
     return result;
+}
+
+Vector* vector_matrix_mul(const Vector* v1, const Matrix* m1) {
+    return vector_from_matrix_row(matrix_mul(vector_as_matrix(v1), m1), 0);
 }
 
 /**
@@ -697,6 +705,108 @@ Matrix* matrix_copy(const Matrix* original) {
         }
     }
     return copy;
+}
+
+
+Vector* matrix_javidx9(const Vector* real_world_position) {
+
+    Vector* center = vector_create(384.0 / 2, 216.0 / 2, 0);
+
+    if(real_world_position->z == 0) {
+        Matrix* translation_back = matrix_create_translation_matrix(center);
+        Matrix* screen_coordinates_unchanged = matrix_mul(vector_as_matrix(real_world_position), translation_back);
+        return vector_from_matrix_row(screen_coordinates_unchanged, 0);
+    }
+
+    Matrix* transformation = matrix_create_identity_matrix();
+    float znear = 0.1f;
+    float zfar = 1000.0f;
+
+    float a = 384.0 / 216.0; //aspect ratio just stretches the screen? use 1280x720 instead?
+    float f = 1 / tanf((M_PI / 3) / 2);
+    float q = zfar / (zfar - znear);
+
+    transformation->matrix[0][0] = f; // javidx9: (a*f)
+    transformation->matrix[1][1] = f;
+    transformation->matrix[2][2] = q;
+    transformation->matrix[2][3] = 1;
+    transformation->matrix[3][2] = (-znear) * q;
+    transformation->matrix[3][3] = 0;
+
+
+    //might need translation to origin first.
+    Matrix* screen_coordinates = matrix_mul(vector_as_matrix(real_world_position), transformation);
+    Matrix* translation_back = matrix_create_translation_matrix(center);
+    screen_coordinates = matrix_mul(screen_coordinates, translation_back);
+        
+    Vector* screen_position = vector_from_matrix_row(screen_coordinates, 0);
+    screen_position->x = screen_position->x / real_world_position->z;
+    screen_position->y = screen_position->y / real_world_position->z;
+    screen_position->z = screen_position->z / real_world_position->z;
+    return screen_position;
+
+
+    
+
+    
+
+}
+
+Matrix* matrix_point_at(const Vector* pos, const Vector* target, const Vector* up) {
+    
+    Vector* forward = vector_sub(pos, target);
+    forward = vector_normalize(forward);
+
+    Vector* a = vector_scale(forward, vector_dot_product(up, forward));
+    Vector* newUp = vector_sub(a, up);
+
+    Vector* newRight = vector_cross_product(newUp, forward);
+
+    Matrix* pointAt = matrix_create_identity_matrix();
+    pointAt->matrix[0][0] = newRight->x;
+    pointAt->matrix[0][1] = newRight->y;
+    pointAt->matrix[0][2] = newRight->z;
+    pointAt->matrix[0][3] = 0;
+    pointAt->matrix[1][0] = newUp->x;
+    pointAt->matrix[1][1] = newUp->y;
+    pointAt->matrix[1][2] = newUp->z;
+    pointAt->matrix[1][3] = 0;
+    pointAt->matrix[2][0] = forward->x;
+    pointAt->matrix[2][1] = forward->y;
+    pointAt->matrix[2][2] = forward->z;
+    pointAt->matrix[2][3] = 0;
+    pointAt->matrix[3][0] = pos->x;
+    pointAt->matrix[3][1] = pos->y;
+    pointAt->matrix[3][2] = pos->z;
+    pointAt->matrix[3][3] = 1.0f; 
+
+    return pointAt;
+}
+
+Matrix* matrix_quick_lookat_inverse(const Matrix* pointAt) {
+
+    Matrix* lookAt = matrix_create_identity_matrix();
+
+    lookAt->matrix[0][0] = pointAt->matrix[0][0];
+    lookAt->matrix[0][1] = pointAt->matrix[1][0];
+    lookAt->matrix[0][2] = pointAt->matrix[2][0];
+    lookAt->matrix[0][3] = 0;
+    lookAt->matrix[1][0] = pointAt->matrix[0][1];
+    lookAt->matrix[1][1] = pointAt->matrix[1][1];
+    lookAt->matrix[1][2] = pointAt->matrix[2][1];
+    lookAt->matrix[1][3] = 0;
+    lookAt->matrix[2][0] = pointAt->matrix[0][2];
+    lookAt->matrix[2][1] = pointAt->matrix[1][2];
+    lookAt->matrix[2][2] = pointAt->matrix[2][2];
+    lookAt->matrix[2][3] = 0;
+
+
+    lookAt->matrix[3][0] = -(pointAt->matrix[3][0] * pointAt->matrix[0][0] + pointAt->matrix[3][1] * pointAt->matrix[1][0] + pointAt->matrix[3][2] * pointAt->matrix[2][0]);
+    lookAt->matrix[3][1] = -(pointAt->matrix[3][0] * pointAt->matrix[0][1] + pointAt->matrix[3][1] * pointAt->matrix[1][1] + pointAt->matrix[3][2] * pointAt->matrix[2][1]);
+    lookAt->matrix[3][2] = -(pointAt->matrix[3][0] * pointAt->matrix[0][2] + pointAt->matrix[3][1] * pointAt->matrix[1][2] + pointAt->matrix[3][2] * pointAt->matrix[2][2]);
+    lookAt->matrix[3][3] = 1.0f;  
+
+    return lookAt;
 }
 
 

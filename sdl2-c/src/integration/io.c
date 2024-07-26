@@ -17,7 +17,7 @@
 * Initalizes vector for mouseposition.
 * Sets quit callback function.
 */
-IO* io_create(bool* quit, Camera* target_vector, int map[24][24]) {
+IO* io_create(bool* quit, Camera* camera) {
     IO* io = malloc(sizeof(IO));
     io->keystate = SDL_GetKeyboardState(0);
     io->mouse_positon = vector_create(0, 0, 0);
@@ -25,13 +25,7 @@ IO* io_create(bool* quit, Camera* target_vector, int map[24][24]) {
         io->mousebutton_state[i] = false;
     }
     io->quit = quit;
-    io->target_camera = target_vector;
-
-    for(int i = 0; i < 24; i++) {
-        for(int j = 0; j < 24; j++) {
-            io->map[i][j] = map[i][j];
-        }
-    }
+    io->camera = camera;
 
     return io;
 }
@@ -122,18 +116,6 @@ void io_event_update(IO* io) {
 }
 
 
-/**
-* Calculates potential new position.
-* If new position is not inside a wall then update current position.
-*/
-void move_player(Vector* position, const Vector* movement, int map[24][24]) {
-
-    Vector* newpos = vector_add(position, movement);
-    if(map[(int) newpos->x][(int) newpos->y] == 0) { 
-        *position = *newpos;
-    } 
-}
-
 
 /**
 * Incorporates io_event_update together with outlined SDL_SCANCODE keys.
@@ -146,54 +128,59 @@ void io_handle_events(IO* io) {
         *io->quit = true;
     }
 
-    float speed = io->target_camera->speed;
-    if(io_is_key_down(io, SDL_SCANCODE_LSHIFT)) {
-        speed = speed * 2;
-    }
-
-    Vector* movement = vector_scale(io->target_camera->direction, speed);
-    
-    /* Moves forward by adding direction vector to current position */
-    if(io_is_key_down(io, SDL_SCANCODE_W)) {
-        move_player(io->target_camera->position, movement, io->map);
-
-    }
-    /* Moves backward by subtracting direction vector from current position */
-    if(io_is_key_down(io, SDL_SCANCODE_S)) {
-        move_player(io->target_camera->position, vector_scale(movement, (-1)), io->map);
-    }
-    /* Moves left by adding (direction * 90 degrees) to current position */
-    if(io_is_key_down(io, SDL_SCANCODE_D)) {
-        Vector* leftdir = vector_rotate(movement, io->target_camera->position, (M_PI / 2));
-        move_player(io->target_camera->position, leftdir, io->map);
-    }
-    /* Moves right by adding (direction * 90 degrees) to current position */
     if(io_is_key_down(io, SDL_SCANCODE_A)) {
-        Vector* rightdir = vector_rotate(movement, io->target_camera->position, -(M_PI / 2));
-        move_player(io->target_camera->position, rightdir, io->map);
+        io->camera->fYaw -= 0.01;      
     }
 
-    /**
-    * Rotates direction & camera_plane vectors clockwise.
-    */
-    if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
-    
-        io->target_camera->direction = vector_rotate(io->target_camera->direction, io->target_camera->position, -(M_PI / 128));
-        io->target_camera->camera_plane = vector_rotate(io->target_camera->camera_plane, io->target_camera->position, -(M_PI / 128));
-        io->target_camera->direction->z = 0;
-        io->target_camera->camera_plane->z = 0;
-
+    if(io_is_key_down(io, SDL_SCANCODE_D)) {
+        io->camera->fYaw += 0.01;      
     }
 
-    /**
-    * Rotates direction & camera_plane vectors counter-clockwise.
-    */
+    Vector* forward = vector_scale(io->camera->direction, 0.1);
+
+    if(io_is_key_down(io, SDL_SCANCODE_W)) {
+        io->camera->position = vector_add(io->camera->position, forward);
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_S)) {
+        io->camera->position = vector_sub(forward, io->camera->position);
+    }
+
+
+
+
+
+  
+
+    if(io_is_key_down(io, SDL_SCANCODE_UP)) {
+        io->camera->position->y += 0.1; 
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_DOWN)) {
+        io->camera->position->y -= 0.1; 
+    }
+
     if(io_is_key_down(io, SDL_SCANCODE_RIGHT)) {
-       
-        io->target_camera->direction = vector_rotate(io->target_camera->direction, io->target_camera->position, (M_PI / 128));
-        io->target_camera->camera_plane = vector_rotate(io->target_camera->camera_plane, io->target_camera->position, (M_PI / 128));
-        io->target_camera->direction->z = 0;
-        io->target_camera->camera_plane->z = 0;
-
+        io->camera->position->x += 0.1;
     }
+
+    if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
+        io->camera->position->x -= 0.1; 
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_I)) {
+        io->camera->position->z += 0.1;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_O)) {
+        io->camera->position->z -= 0.1; 
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_R)) {
+        *io->camera = *camera_init(vector_create(0,0,-2));
+    }
+
+  
+
+    
 }

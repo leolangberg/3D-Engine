@@ -101,11 +101,12 @@ void vector_negate(Vector* v1) {
 /**
 * Normalizes the vector (scale with magnutide of itself).
 */
-void vector_normalize(Vector* v1) {
+Vector* vector_normalize(Vector* v1) {
     float magnitude = vector_length(v1);
     if (magnitude > 0) {
-        vector_scale(v1, (1 / magnitude));
+        return vector_scale(v1, (1 / magnitude));
     }
+    return vector_create(NAN, NAN, NAN);
 }
 
 /**

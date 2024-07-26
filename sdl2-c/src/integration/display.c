@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "../model/sector.h"
 
 /**
 * Bresenhams Algorithm for vector rasterization.
@@ -145,7 +146,7 @@ void display_draw_line(uint32_t* pixelmap, const Vector* v1, const Vector* v2, u
 * Side 0 = x-direction and side 1 = y-direction.
 * 
 */
-void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap, int texture[8][64 * 63 + 63]) {
+void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap) {
    
     int w = WINDOW_WIDTH;
     int h = WINDOW_HEIGHT;
@@ -154,11 +155,11 @@ void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelm
     {
         float cameraX = 2.0 * x / w - 1;
         float rayDirX = camera->direction->x + camera->camera_plane->x * cameraX;
-        float rayDirY = camera->direction->y + camera->camera_plane->y * cameraX;
+        float rayDirY = camera->direction->z + camera->camera_plane->z * cameraX;
 
         //which box of the map were in.
         int mapX = camera->position->x;
-        int mapY = camera->position->y;
+        int mapY = camera->position->z;
 
         //length of ray from current position to next x or y-side.
         float sideDistX;
@@ -194,12 +195,12 @@ void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelm
         if (rayDirY < 0)
         {
             stepY = -1;
-            sideDistY = (camera->position->y - mapY) * deltaDistY;
+            sideDistY = (camera->position->z - mapY) * deltaDistY;
         }
         else
         {
             stepY = 1;
-            sideDistY = (mapY + 1.0 - camera->position->y) * deltaDistY;
+            sideDistY = (mapY + 1.0 - camera->position->z) * deltaDistY;
         }
 
         //perform DDA-Algorithm.
@@ -244,49 +245,23 @@ void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelm
             drawEnd = h - 1;
         }
 
-        /**
-        * Addition for textured raycasters 
-        */
 
-        
-        //if you go outside the map then this worldmap value and thus texture_number becomes screwed.
-        int texture_number = worldmap[mapX][mapY] - 1;
-
-        //calculate value of wallX
-        float wallX;
-        if(side == 0) {
-            wallX = camera->position->y + perpWallDist * rayDirY;
-        } else {
-            wallX = camera->position->x + perpWallDist * rayDirX;
-        }
-        wallX -= floorf(wallX);
-
-        //x coordinate on the texture
-        int textureX = wallX * 64;
-        if(side == 0 && rayDirX > 0) {
-            textureX = 64 - textureX - 1;
-        }
-        if(side == 1 && rayDirY < 0) {
-            textureX = 64 - textureX - 1;
-        }
-
-        //how much to increase the texture coordinate per screen pixel.
-        float step = 64.0 / lineHeight;
-        //starting texture coordinate
-        float texture_pos = (drawStart - (float) h  / 2 + (float) lineHeight / 2) * step;
-        for(int y = drawStart; y < drawEnd; y++) 
+        uint32_t color;
+        switch(worldmap[mapX][mapY])
         {
-            //Cast the texture coordinate to integer, and mask with TEXTUREHEIGHT (64) - 1 in case of overflow
-            int textureY = (int) texture_pos & (64 - 1);
-            texture_pos += step;
-            uint32_t color = texture[texture_number][64 * textureY + textureX]; //segment fault 11.
+            case 1:  color = 0xFF0000FF;    break; //red
+            case 2:  color = 0xFF00FF00;  break; //green
+            case 3:  color = 0xFFFF0000;   break; //blue
+            case 4:  color = 0xFFFFFFFF;  break; //white
+            default: color = 0xFF00FFFF; break; //yellow
+        }
 
-            //make y-dir colors slight darker
-            if(side == 1) {
-                color = (color / 2);
-            }
-            //no point in having a buffer as pixels are already drawn one by one. 
+        //give x and y sides different brightness
+        if(side == 1) {color = color / 2;}
+
+        for(int y = drawStart; y < drawEnd; y++) {
             display_draw_pixel(pixelmap, x, y, color);
         }
+
     }
 }

@@ -2,9 +2,11 @@
 #include "../integration/io.h"
 #include "../model/object.h"
 #include "../model/camera.h"
+#include "../model/sector.h"
 #include "SDL2/SDL_rect.h"
 #include "SDL2/SDL_render.h"
 #include <SDL2/SDL.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -20,6 +22,10 @@
 #define FPS 60
 #define DELAY_TIME 1000.0f / FPS
 
+#define BLUE   0xFFFF0000
+#define GREEN 0xFF00FF00
+#define RED  0xFF0000FF
+
 #define OBJECT_LIST_MAX_SIZE 10
 
 #define MAPWIDTH 24
@@ -30,36 +36,8 @@
 
 
 
-int worldMap[MAPWIDTH][MAPHEIGHT]=
-{
-  {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1},
-  {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,3,0,0,0,3,0,0,0,1},
-  {1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,2,2,0,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,4,0,0,0,0,5,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,4,0,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-  {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
-};
 
-//no point in having a buffer as pixels are already drawn one by one. 
-int texture[8][TEXTURE_WIDTH * (TEXTURE_HEIGHT - 1) + (TEXTURE_WIDTH - 1)];
+
 
 
 
@@ -76,58 +54,22 @@ static struct {
     uint32_t pixels[WINDOW_WIDTH * WINDOW_HEIGHT];
     bool quit;
     Camera* camera;
-    IO* io;
-    struct {
-        Object** object_list;
-        int list_length;
-        void (*add)();
-    }objects;
+    IO* io; 
 
 }state;
 
-/**
-* Function for adding objects to object list in 'state' struct.
-* @param object object to be added.
-*/
-void list_add(void* object) {
-    state.objects.object_list[state.objects.list_length] = object;
-    state.objects.list_length++;
-}
+
+
 
 void init() {
 
-    state.camera = malloc(sizeof(Camera));
-    state.camera->position = vector_create(12, 12, 0);
-    state.camera->direction = vector_create(-1, 0, 0);
-    state.camera->camera_plane = vector_create(0, 1, 0); //perpendicular to direction. (90')
-    state.camera->speed = 0.1;
-    
-    state.io = io_create(&state.quit, state.camera, worldMap);
 
-    state.objects.object_list = malloc(sizeof(Polygon) * OBJECT_LIST_MAX_SIZE);
-    state.objects.list_length = 0;
-    state.objects.add = (list_add);
+    state.camera = camera_init(vector_create(0,0,0));
 
+    state.io = io_create(&state.quit, state.camera);
 
-    for(int x = 0; x < TEXTURE_WIDTH; x++)
-    {
-        for(int y = 0; y < TEXTURE_HEIGHT; y++)
-        {
-            int xorcolor = (x * 256 / TEXTURE_WIDTH) ^ (y * 256 / TEXTURE_HEIGHT);
-            //int xcolor = x * 256 / texWidth;
-            int ycolor = y * 256 / TEXTURE_HEIGHT;
-            int xycolor = y * 128 / TEXTURE_HEIGHT + x * 128 / TEXTURE_WIDTH;
-            texture[0][TEXTURE_WIDTH * y + x] = 65536 * 254 * (x != y && x != TEXTURE_WIDTH - y); //flat red texture with black cross
-            texture[1][TEXTURE_WIDTH * y + x] = xycolor + 256 * xycolor + 65536 * xycolor; //sloped greyscale
-            texture[2][TEXTURE_WIDTH * y + x] = 256 * xycolor + 65536 * xycolor; //sloped yellow gradient
-            texture[3][TEXTURE_WIDTH * y + x] = xorcolor + 256 * xorcolor + 65536 * xorcolor; //xor greyscale
-            texture[4][TEXTURE_WIDTH * y + x] = 256 * xorcolor; //xor green
-            texture[5][TEXTURE_WIDTH * y + x] = 65536 * 192 * (x % 16 && y % 16); //red bricks
-            texture[6][TEXTURE_WIDTH * y + x] = 65536 * ycolor; //red gradient
-            texture[7][TEXTURE_WIDTH * y + x] = 128 + 256 * 128 + 65536 * 128; //flat grey texture
-        }
-    }
 }
+
 
 
 /**
@@ -193,9 +135,12 @@ int main( int arc, char* args[] ) {
     while(!state.quit)
     {
         frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
-        io_handle_events(state.io);
 
-        raycasting_algorithm(state.camera, worldMap, state.pixels, texture);
+        io_handle_events(state.io);
+        
+
+
+    
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(
@@ -209,8 +154,8 @@ int main( int arc, char* args[] ) {
         SDL_RenderPresent(state.renderer);
 
         memset(state.pixels, 0, sizeof(state.pixels));
-        char title[100];
-        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || Plane: x=%.2f, y=%.2f, z=%.2f", 
+        char title[250];
+        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || Target: x=%.2f, y=%.2f, z=%.2f || ogn ws: x=%.2f, y=%.2f, z=%.2f || view: x=%.2f, y=%.2f, z=%.2f || scr: x=%.2f, y=%.2f, z=%.2f", 
                     state.camera->position->x, 
                     state.camera->position->y, 
                     state.camera->position->z,
@@ -219,9 +164,23 @@ int main( int arc, char* args[] ) {
                     state.camera->direction->y,
                     state.camera->direction->z,
                     
-                    state.camera->camera_plane->x,
-                    state.camera->camera_plane->y,
-                    state.camera->camera_plane->z);
+                    state.camera->target->x,
+                    state.camera->target->y,
+                    state.camera->target->z,
+                    
+                    //state.camera->fYaw,
+                    
+                    state.camera->origin.world_origin->x,
+                    state.camera->origin.world_origin->y,
+                    state.camera->origin.world_origin->z,
+                    
+                    state.camera->origin.view_origin->x,
+                    state.camera->origin.view_origin->y,
+                    state.camera->origin.view_origin->z,
+                    
+                    state.camera->origin.screen_origin->x,
+                    state.camera->origin.screen_origin->y,
+                    state.camera->origin.screen_origin->z);
         SDL_SetWindowTitle(state.window, title);
 
         frameTime = SDL_GetTicks64() - frameStart;

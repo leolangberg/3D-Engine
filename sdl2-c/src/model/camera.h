@@ -1,4 +1,5 @@
 #include "vector.h"
+#include "matrix.h"
 
 #ifndef CAMERA_H
 #define CAMERA_H
@@ -10,7 +11,23 @@ typedef struct {
     Vector* position;
     Vector* direction;
     Vector* camera_plane;
-    float speed;
+
+    Vector* up;
+    Vector* target;
+
+    Matrix* pointAt;
+    Matrix* lookAt;
+    float fYaw;
+
+    struct {
+        Vector* world_origin;
+        Vector* view_origin;
+        Vector* screen_origin;
+    }origin;
 }Camera;
+
+Camera* camera_init(Vector* position);
+
+void camera_update(Camera* camera);
 
 #endif

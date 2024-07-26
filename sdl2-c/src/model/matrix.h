@@ -71,6 +71,10 @@ Matrix* matrix_create_translation_matrix(const Vector* v1);
 */
 Matrix* matrix_create_rotation_matrix(float angle_radian);
 
+Matrix* matrix_create_rotation_matrix_y(float angle_radian);
+Matrix* matrix_create_rotation_matrix_x(float angle_radian);
+Matrix* matrix_create_rotation_matrix_z(float angle_radian);
+
 /**
 * Rotates matrix with angle given.
 * 
@@ -118,7 +122,7 @@ void matrix_gauss_jordan_elimination(Matrix* A, Matrix* B);
 * Uses Gauss-Jordan Elimination then retrieves the new Inverse 
 * to the Matrix A.
 */
-void matrix_inverse(Matrix* A);
+Matrix* matrix_inverse(Matrix* A);
 
 /**
 * Collects specific column and returns it as a vector.
@@ -146,6 +150,8 @@ Matrix* vector_as_matrix(const Vector* v1);
 * @param array_length length of vector array.
 */
 Matrix* vectors_as_matrix(const Vector** array_of_vectors, int array_length);
+
+Vector* vector_matrix_mul(const Vector* v1, const Matrix* m1);
 
 /**
 * Rotates vector via matrix rotation (Z-rotation or "2D rotation").
@@ -175,5 +181,11 @@ void matrix_perspective_transformation(Matrix* m1, float distance);
 * Copies given matrix.
 */
 Matrix* matrix_copy(const Matrix* original);
+
+Vector* matrix_javidx9(const Vector* real_world_position);
+
+Matrix* matrix_point_at(const Vector* pos, const Vector* target, const Vector* up);
+
+Matrix* matrix_quick_lookat_inverse(const Matrix* pointAt);
 
 #endif
