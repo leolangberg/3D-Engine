@@ -736,13 +736,15 @@ Vector* matrix_javidx9(const Vector* real_world_position) {
 
     //might need translation to origin first.
     Matrix* screen_coordinates = matrix_mul(vector_as_matrix(real_world_position), transformation);
+    screen_coordinates->matrix[0][0] /= real_world_position->z;
+    screen_coordinates->matrix[0][1] /= real_world_position->z;
+    screen_coordinates->matrix[0][2] /= real_world_position->z;
+    screen_coordinates->matrix[0][3] = 1;
+
     Matrix* translation_back = matrix_create_translation_matrix(center);
     screen_coordinates = matrix_mul(screen_coordinates, translation_back);
         
     Vector* screen_position = vector_from_matrix_row(screen_coordinates, 0);
-    screen_position->x = screen_position->x / real_world_position->z;
-    screen_position->y = screen_position->y / real_world_position->z;
-    screen_position->z = screen_position->z / real_world_position->z;
     return screen_position;
 
 
