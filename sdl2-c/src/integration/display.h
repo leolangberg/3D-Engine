@@ -10,6 +10,8 @@
 #define WINDOW_WIDTH 384
 #define WINDOW_HEIGHT 216
 
+int clip_line(Vector* v1, Vector* v2);
+
 /**
 * Draws pixel on screen basd on coordinates x and y.
 * If coordinates land outside of window proportions then function
@@ -20,7 +22,7 @@ void display_draw_pixel(uint32_t* pixelmap, int x, int y, uint32_t color);
 /**
 * Display a line between 2 vectors (or points) by calling bresenhams algorithm.
 */
-void display_draw_line(uint32_t* pixelmap, const Vector* v1, const Vector* v2, uint32_t color);
+void display_draw_line(uint32_t* pixelmap, Vector* v1, Vector* v2, uint32_t color);
 
 /**
 * Raycasting Algorithm

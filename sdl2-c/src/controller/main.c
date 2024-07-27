@@ -1,6 +1,5 @@
 #include "../integration/display.h"
 #include "../integration/io.h"
-#include "../model/object.h"
 #include "../model/camera.h"
 #include "../model/sector.h"
 #include "SDL2/SDL_rect.h"
@@ -58,7 +57,9 @@ static struct {
 
 }state;
 
-
+Wall w;
+Vector* v1;
+Vector* v2;
 
 
 void init() {
@@ -66,6 +67,17 @@ void init() {
 
     state.camera = camera_init(vector_create(0,0,0));
 
+    
+    w = wall_create(vector_create(10, 0, 2), vector_create(20, 0, 2), vector_create(20, 20, 2), vector_create(10, 20, 2), GREEN);
+    Matrix* wall_view = matrix_mul(&w.wall, state.camera->lookAt);
+    Matrix* wall_screen = matrix_screen_transformation(wall_view);
+
+    matrix_print(&w.wall);
+    matrix_print(wall_view);
+    matrix_print(wall_screen);
+
+
+    
     state.io = io_create(&state.quit, state.camera);
 
 }
@@ -137,7 +149,17 @@ int main( int arc, char* args[] ) {
         frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
 
         io_handle_events(state.io);
+        camera_update(state.camera);
+
+        Matrix* wall_view = matrix_mul(&w.wall, state.camera->lookAt);
+        Matrix* wall_screen = matrix_screen_transformation(wall_view);
+
         
+
+        display_draw_line(state.pixels, vector_from_matrix_row(wall_screen, 0), vector_from_matrix_row(wall_screen, 1), GREEN);
+        display_draw_line(state.pixels, vector_from_matrix_row(wall_screen, 1), vector_from_matrix_row(wall_screen, 2), GREEN);
+        display_draw_line(state.pixels, vector_from_matrix_row(wall_screen, 2), vector_from_matrix_row(wall_screen, 3), GREEN);
+        display_draw_line(state.pixels, vector_from_matrix_row(wall_screen, 3), vector_from_matrix_row(wall_screen, 0), GREEN);
 
 
     

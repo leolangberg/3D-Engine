@@ -707,17 +707,10 @@ Matrix* matrix_copy(const Matrix* original) {
     return copy;
 }
 
+Matrix* matrix_screen_transformation(const Matrix* real_world_position) {
 
-Vector* matrix_javidx9(const Vector* real_world_position) {
-
-    Vector* center = vector_create(384.0 / 2, 216.0 / 2, 0);
-
-    if(real_world_position->z == 0) {
-        Matrix* translation_back = matrix_create_translation_matrix(center);
-        Matrix* screen_coordinates_unchanged = matrix_mul(vector_as_matrix(real_world_position), translation_back);
-        return vector_from_matrix_row(screen_coordinates_unchanged, 0);
-    }
-
+     Vector* center = vector_create(384.0 / 2, 216.0 / 2, 0);
+     
     Matrix* transformation = matrix_create_identity_matrix();
     float znear = 0.1f;
     float zfar = 1000.0f;
@@ -733,17 +726,41 @@ Vector* matrix_javidx9(const Vector* real_world_position) {
     transformation->matrix[3][2] = (-znear) * q;
     transformation->matrix[3][3] = 0;
 
-
-    //might need translation to origin first.
-    Matrix* screen_coordinates = matrix_mul(vector_as_matrix(real_world_position), transformation);
-    screen_coordinates->matrix[0][0] /= real_world_position->z;
-    screen_coordinates->matrix[0][1] /= real_world_position->z;
-    screen_coordinates->matrix[0][2] /= real_world_position->z;
-    screen_coordinates->matrix[0][3] = 1;
+    Matrix* screen_coordinates = matrix_mul(real_world_position, transformation);
+    
+    for(int i = 0; i < 4; i++)
+    {
+        screen_coordinates->matrix[i][0] /= screen_coordinates->matrix[i][3];
+        screen_coordinates->matrix[i][1] /= screen_coordinates->matrix[i][3];
+        screen_coordinates->matrix[i][2] /= screen_coordinates->matrix[i][3];
+        screen_coordinates->matrix[i][3] = 1;
+    }
+    
 
     Matrix* translation_back = matrix_create_translation_matrix(center);
     screen_coordinates = matrix_mul(screen_coordinates, translation_back);
         
+
+    return screen_coordinates;
+
+}
+
+
+Vector* matrix_javidx9(const Vector* real_world_position) {
+
+    Vector* center = vector_create(384.0 / 2, 216.0 / 2, 0);
+
+    if(real_world_position->z == 0) {
+        Matrix* translation_back = matrix_create_translation_matrix(center);
+        Matrix* screen_coordinates_unchanged = matrix_mul(vector_as_matrix(real_world_position), translation_back);
+        return vector_from_matrix_row(screen_coordinates_unchanged, 0);
+    }
+
+   
+    //might need translation to origin first.
+    Matrix* screen_coordinates = matrix_screen_transformation(vector_as_matrix(real_world_position));
+    
+
     Vector* screen_position = vector_from_matrix_row(screen_coordinates, 0);
     return screen_position;
 

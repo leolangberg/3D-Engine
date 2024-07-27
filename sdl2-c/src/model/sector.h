@@ -4,6 +4,8 @@
 #define SECTOR_H
 
 #include "vector.h"
+#include "matrix.h"
+#include <stdint.h>
 
 
 /**
@@ -20,12 +22,12 @@ typedef struct {
 * (Height defiend in sector)
 */
 typedef struct {
-    Vector* v1;
-    Vector* v2;
-    Vector* h;
+    Matrix wall;
+    uint32_t color;
+    Vector n;
 }Wall;
 
-
+Wall wall_create(const Vector* v1, const Vector* v2, const Vector* v3, const Vector* v4, uint32_t color);
 
 
 #endif
