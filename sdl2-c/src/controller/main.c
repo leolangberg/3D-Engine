@@ -1,5 +1,6 @@
 #include "../integration/display.h"
 #include "../integration/io.h"
+#include "../model/polygon.h"
 #include "../model/camera.h"
 #include "../model/sector.h"
 #include "SDL2/SDL_rect.h"
@@ -57,28 +58,21 @@ static struct {
 
 }state;
 
-Wall w;
-Vector* v1;
-Vector* v2;
 
+Triangle t;
 
 void init() {
 
 
     state.camera = camera_init(vector_create(0,0,0));
 
-    
-    w = wall_create(vector_create(10, 0, 2), vector_create(20, 0, 2), vector_create(20, 20, 2), vector_create(10, 20, 2), GREEN);
-    Matrix* wall_view = matrix_mul(&w.wall, state.camera->lookAt);
-    Matrix* wall_screen = matrix_screen_transformation(wall_view);
 
-    matrix_print(&w.wall);
-    matrix_print(wall_view);
-    matrix_print(wall_screen);
-
+    t = triangle_create(vector_create(-10, 50, 0), vector_create(20, 100, 0), vector_create(100, -20, 0), BLUE);
 
     
     state.io = io_create(&state.quit, state.camera);
+
+    triangle_draw_2D(&t, state.pixels);
 
 }
 
@@ -151,17 +145,7 @@ int main( int arc, char* args[] ) {
         io_handle_events(state.io);
         camera_update(state.camera);
 
-        Matrix* wall_view = matrix_mul(&w.wall, state.camera->lookAt);
-        Matrix* wall_screen = matrix_screen_transformation(wall_view);
-
-        
-
-        display_draw_line(state.pixels, vector_from_matrix_row(wall_screen, 0), vector_from_matrix_row(wall_screen, 1), GREEN);
-        display_draw_line(state.pixels, vector_from_matrix_row(wall_screen, 1), vector_from_matrix_row(wall_screen, 2), GREEN);
-        display_draw_line(state.pixels, vector_from_matrix_row(wall_screen, 2), vector_from_matrix_row(wall_screen, 3), GREEN);
-        display_draw_line(state.pixels, vector_from_matrix_row(wall_screen, 3), vector_from_matrix_row(wall_screen, 0), GREEN);
-
-
+        triangle_draw_2D(&t, state.pixels);
     
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
