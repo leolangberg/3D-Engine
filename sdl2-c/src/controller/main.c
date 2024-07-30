@@ -2,7 +2,6 @@
 #include "../integration/io.h"
 #include "../model/polygon.h"
 #include "../model/camera.h"
-#include "../model/sector.h"
 #include "SDL2/SDL_rect.h"
 #include "SDL2/SDL_render.h"
 #include <SDL2/SDL.h>
@@ -59,20 +58,35 @@ static struct {
 }state;
 
 
-Triangle t;
+Object object;
 
 void init() {
 
 
     state.camera = camera_init(vector_create(0,0,0));
+    state.io = io_create(&state.quit, state.camera, &object);
 
 
-    t = triangle_create(vector_create(-10, 50, 0), vector_create(20, 100, 0), vector_create(100, -20, 0), BLUE);
+
+    if(!PLG_Load_Object(&object, "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/model/pyramid.plg", 1))
+    {
+        printf("\n Could not find file\n");
+        return;
+    }
+    printf("\nobject created succesfully!\n");
+
+    object_position(&object, 0, 0, 300);
+
+    // view_point.x = 0;
+    // view_point.y = 0;
+    // view_point.z = 0;
+
+
+    object_rotate_y(&object, (M_PI / 4));
+    
 
     
-    state.io = io_create(&state.quit, state.camera);
 
-    triangle_draw_2D(&t, state.pixels);
 
 }
 
@@ -126,6 +140,7 @@ int main( int arc, char* args[] ) {
         SDL_GetError());
 
     init();
+    int index;
 
 
     /**
@@ -145,7 +160,25 @@ int main( int arc, char* args[] ) {
         io_handle_events(state.io);
         camera_update(state.camera);
 
-        triangle_draw_2D(&t, state.pixels);
+        // convert the local coordinates into world and camera coordinates for shading
+        // and projection. note the viewer is at (0,0,0) with angles 0,0,0
+        // so the transformation is imply to add the world position to each 
+        // local vertex
+        for(index = 0; index < object.num_vertices; index++)
+        {
+            object.vertices_camera[index].x = object.vertices_world[index].x = object.vertices_local[index].x + object.world_pos.x;
+            object.vertices_camera[index].y = object.vertices_world[index].y = object.vertices_local[index].y + object.world_pos.y;
+            object.vertices_camera[index].z = object.vertices_world[index].z = object.vertices_local[index].z + object.world_pos.z;
+        }
+
+        
+
+        // shade and remove backfaces, ignore the backface part for now
+        remove_backfaces_and_shade(&object);
+
+        //draw the object
+        draw_object_solid(&object, state.pixels);
+
     
 
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
@@ -161,10 +194,10 @@ int main( int arc, char* args[] ) {
 
         memset(state.pixels, 0, sizeof(state.pixels));
         char title[250];
-        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || Target: x=%.2f, y=%.2f, z=%.2f || ogn ws: x=%.2f, y=%.2f, z=%.2f || view: x=%.2f, y=%.2f, z=%.2f || scr: x=%.2f, y=%.2f, z=%.2f", 
-                    state.camera->position->x, 
-                    state.camera->position->y, 
-                    state.camera->position->z,
+        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || Target: x=%.2f, y=%.2f, z=%.2f || fYaw=%.2f", 
+                    object.world_pos.x, 
+                    object.world_pos.y, 
+                    object.world_pos.z,
                     
                     state.camera->direction->x,
                     state.camera->direction->y,
@@ -174,19 +207,7 @@ int main( int arc, char* args[] ) {
                     state.camera->target->y,
                     state.camera->target->z,
                     
-                    //state.camera->fYaw,
-                    
-                    state.camera->origin.world_origin->x,
-                    state.camera->origin.world_origin->y,
-                    state.camera->origin.world_origin->z,
-                    
-                    state.camera->origin.view_origin->x,
-                    state.camera->origin.view_origin->y,
-                    state.camera->origin.view_origin->z,
-                    
-                    state.camera->origin.screen_origin->x,
-                    state.camera->origin.screen_origin->y,
-                    state.camera->origin.screen_origin->z);
+                    state.camera->fYaw);
         SDL_SetWindowTitle(state.window, title);
 
         frameTime = SDL_GetTicks64() - frameStart;

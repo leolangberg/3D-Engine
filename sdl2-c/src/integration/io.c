@@ -17,7 +17,7 @@
 * Initalizes vector for mouseposition.
 * Sets quit callback function.
 */
-IO* io_create(bool* quit, Camera* camera) {
+IO* io_create(bool* quit, Camera* camera, Object* object) {
     IO* io = malloc(sizeof(IO));
     io->keystate = SDL_GetKeyboardState(0);
     io->mouse_positon = vector_create(0, 0, 0);
@@ -26,6 +26,7 @@ IO* io_create(bool* quit, Camera* camera) {
     }
     io->quit = quit;
     io->camera = camera;
+    io->object = object;
 
     return io;
 }
@@ -128,6 +129,8 @@ void io_handle_events(IO* io) {
         *io->quit = true;
     }
 
+    /*
+
     if(io_is_key_down(io, SDL_SCANCODE_A)) {
         io->camera->fYaw -= 0.01;      
     }
@@ -181,6 +184,50 @@ void io_handle_events(IO* io) {
     }
 
   
+    */
 
+
+    if(io_is_key_down(io, SDL_SCANCODE_W)) {
+        io->object->world_pos.z += 0.1;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_S)) {
+        io->object->world_pos.z -= 0.1;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_A)) {
+        io->object->world_pos.x -= 1;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_D)) {
+        io->object->world_pos.x += 1;
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
+        object_rotate_y(io->object, (M_PI / 64));
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_RIGHT)) {
+        object_rotate_y(io->object, -(M_PI / 64));
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_UP)) {
+        object_rotate_z(io->object, (M_PI / 64));
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_DOWN)) {
+        object_rotate_z(io->object, -(M_PI / 64));
+    }
+
+    if(io_is_key_down(io, SDL_SCANCODE_P)) {
+        for(int i = 0; i < 5; i++)
+        {
+            printf("vertice %d\n", i);
+            printf("local:\n");
+            vector_print(&io->object->vertices_local[i]);
+            printf("world: \n");
+            vector_print(&io->object->vertices_world[i]);
+        }
+    }
     
 }

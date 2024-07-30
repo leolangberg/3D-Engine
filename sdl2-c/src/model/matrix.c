@@ -709,24 +709,32 @@ Matrix* matrix_copy(const Matrix* original) {
 
 Matrix* matrix_screen_transformation(const Matrix* real_world_position) {
 
-     Vector* center = vector_create(384.0 / 2, 216.0 / 2, 0);
+    Matrix* screen_coordinates;
+    Vector* center = vector_create(384.0 / 2, 216.0 / 2, 0);
+
+    // scenario Z = 0
+    if(real_world_position->matrix[0][2] == 0) {
+        Matrix* translation_back = matrix_create_translation_matrix(center);
+        screen_coordinates = matrix_mul(screen_coordinates, translation_back);
+        return screen_coordinates;
+    }
      
     Matrix* transformation = matrix_create_identity_matrix();
     float znear = 0.1f;
-    float zfar = 1000.0f;
+    float zfar = 100.0f;
 
     float a = 384.0 / 216.0; //aspect ratio just stretches the screen? use 1280x720 instead?
-    float f = 1 / tanf((M_PI / 3) / 2);
+    float f = 1 / tanf((2 * M_PI / 3) / 2);
     float q = zfar / (zfar - znear);
 
-    transformation->matrix[0][0] = f; // javidx9: (a*f)
+    transformation->matrix[0][0] = a*f; // javidx9: (a*f)
     transformation->matrix[1][1] = f;
     transformation->matrix[2][2] = q;
     transformation->matrix[2][3] = 1;
     transformation->matrix[3][2] = (-znear) * q;
     transformation->matrix[3][3] = 0;
 
-    Matrix* screen_coordinates = matrix_mul(real_world_position, transformation);
+    screen_coordinates = matrix_mul(real_world_position, transformation);
     
     for(int i = 0; i < 4; i++)
     {

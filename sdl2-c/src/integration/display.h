@@ -5,7 +5,6 @@
 #include "../model/vector.h"
 #include "../model/camera.h"
 #include <stdint.h>
-#include "../model/sector.h"
 
 #define WINDOW_WIDTH 384
 #define WINDOW_HEIGHT 216

@@ -47,6 +47,8 @@ void camera_update(Camera* camera) {
     camera->target = vector_add(camera->position, camera->direction);
     camera->pointAt = matrix_point_at(camera->position, camera->target, camera->up);
     camera->lookAt = matrix_quick_lookat_inverse(camera->pointAt);
+    
+    //Apply rotation onto lookAt here?
 
     camera->origin.view_origin = vector_matrix_mul(camera->origin.world_origin, camera->lookAt);
     camera->origin.screen_origin = matrix_javidx9(camera->origin.view_origin);

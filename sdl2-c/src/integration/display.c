@@ -2,7 +2,6 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "../model/sector.h"
 
 /**
 * Bresenhams Algorithm for vector rasterization.
