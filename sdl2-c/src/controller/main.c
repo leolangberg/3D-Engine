@@ -2,6 +2,7 @@
 #include "../integration/io.h"
 #include "../model/polygon.h"
 #include "../model/camera.h"
+#include "../model/global.h"
 #include "SDL2/SDL_rect.h"
 #include "SDL2/SDL_render.h"
 #include <SDL2/SDL.h>
@@ -12,20 +13,19 @@
 #include <stdlib.h>
 #include <time.h>
 
+
+/*
+* Defined constants for main class.
+*/
+
 #define ASSERT(_e, ...) if (!(_e)) { fprintf(stderr, __VA_ARGS__); exit(1); }
-#define SCREENWIDTH 1280
-#define SCREENHEIGHT 720
-#define WINDOW_WIDTH 384
-#define WINDOW_HEIGHT 216
-#define ALL_PIXELS 82944
+
 #define FPS 60
 #define DELAY_TIME 1000.0f / FPS
 
 #define BLUE   0xFFFF0000
 #define GREEN 0xFF00FF00
 #define RED  0xFF0000FF
-
-#define OBJECT_LIST_MAX_SIZE 10
 
 #define MAPWIDTH 24
 #define MAPHEIGHT 24
@@ -67,8 +67,7 @@ void init() {
     state.io = io_create(&state.quit, state.camera, &object);
 
 
-
-    if(!PLG_Load_Object(&object, "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/model/pyramid.plg", 1))
+    if(!PLG_Load_Object(&object, "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/assets/pyramid.plg", 1))
     {
         printf("\n Could not find file\n");
         return;
@@ -76,15 +75,6 @@ void init() {
     printf("\nobject created succesfully!\n");
 
     object_position(&object, 0, 0, 300);
-
-    // view_point.x = 0;
-    // view_point.y = 0;
-    // view_point.z = 0;
-
-
-    object_rotate_y(&object, (M_PI / 4));
-    
-
     
 
 
@@ -166,15 +156,18 @@ int main( int arc, char* args[] ) {
         // local vertex
         for(index = 0; index < object.num_vertices; index++)
         {
-            object.vertices_camera[index].x = object.vertices_world[index].x = object.vertices_local[index].x + object.world_pos.x;
-            object.vertices_camera[index].y = object.vertices_world[index].y = object.vertices_local[index].y + object.world_pos.y;
-            object.vertices_camera[index].z = object.vertices_world[index].z = object.vertices_local[index].z + object.world_pos.z;
+            object.vertices_world[index].x = object.vertices_local[index].x + object.world_pos.x;
+            object.vertices_world[index].y = object.vertices_local[index].y + object.world_pos.y;
+            object.vertices_world[index].z = object.vertices_local[index].z + object.world_pos.z;
+
+            object.vertices_camera[index] = *vector_matrix_mul(&object.vertices_world[index], state.camera->lookAt);
+           
         }
 
         
 
         // shade and remove backfaces, ignore the backface part for now
-        remove_backfaces_and_shade(&object);
+        remove_backfaces_and_shade(&object, state.camera->position);
 
         //draw the object
         draw_object_solid(&object, state.pixels);
@@ -195,9 +188,9 @@ int main( int arc, char* args[] ) {
         memset(state.pixels, 0, sizeof(state.pixels));
         char title[250];
         snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || Target: x=%.2f, y=%.2f, z=%.2f || fYaw=%.2f", 
-                    object.world_pos.x, 
-                    object.world_pos.y, 
-                    object.world_pos.z,
+                    state.camera->position->x, 
+                    state.camera->position->y, 
+                    state.camera->position->z,
                     
                     state.camera->direction->x,
                     state.camera->direction->y,

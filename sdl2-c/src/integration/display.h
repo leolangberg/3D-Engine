@@ -4,12 +4,10 @@
 
 #include "../model/vector.h"
 #include "../model/camera.h"
+#include "../model/global.h"
 #include <stdint.h>
 
-#define WINDOW_WIDTH 384
-#define WINDOW_HEIGHT 216
 
-int clip_line(Vector* v1, Vector* v2);
 
 /**
 * Draws pixel on screen basd on coordinates x and y.
@@ -38,5 +36,15 @@ void display_draw_line(uint32_t* pixelmap, Vector* v1, Vector* v2, uint32_t colo
 * 
 */
 void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelmap);
+
+
+/**
+* Cohen-Sutherland Algorithm for clipping 2D lines.
+* 
+* Screen is divided into sectors depending on x and y values one can determine which sector the point is in.
+* The CLIP_CODEs serve a purpose of being addable on top of each other so that N & E = NE.
+* Once the sector has been determined for each point the new intersection points are calculated given.
+*/
+int clip_line(Vector* v1, Vector* v2);
 
 #endif

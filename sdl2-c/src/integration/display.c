@@ -116,19 +116,14 @@ void display_draw_pixel(uint32_t* pixelmap, int x, int y, uint32_t color) {
         return;
     }
     pixelmap[(y * WINDOW_WIDTH) + x] = color;
-    //printf("DRAW PIXEL: (%d,%d) pxmap: %d\n", x, y, pixelmap[(y * 384) + x]);
 }
 
 /**
 * Display a line between 2 vectors (or points) by calling bresenhams algorithm.
 */
 void display_draw_line(uint32_t* pixelmap, Vector* v1, Vector* v2, uint32_t color) {
-
-    if(clip_line(v1, v2))
-    {   
-        bresenhams_algorithm(pixelmap, v1, v2, color);
-    }
     
+    if(clip_line(v1, v2)) {  bresenhams_algorithm(pixelmap, v1, v2, color); }
     
 }
 

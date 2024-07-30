@@ -8,116 +8,13 @@
 #include <string.h>
 
 
-
-#define poly_clip_min_y 0
-#define poly_clip_max_y (216 - 1)
-#define poly_clip_min_x 0
-#define poly_clip_max_x (384 - 1)
-
 Vector light_source = {-0.913913, 0.389759, -0.113369};
 float ambient_light = 6;
-Vector view_point = {0, 0, 0};
-
-#define FLAT_SHADING 1
-
-#define SHADE_GREY 31           // hex value = 1F
-#define SHADE_GREEN 111         // hex value = 6F
-#define SHADE_BLUE 159          // hex value = 9F
-#define SHADE_RED 47            // hex value = 2F
-#define SHADE_YELLOW 79         // hex value = 4F
-#define SHADE_BROWN 223         // hex value = DF
-#define SHADE_LIGHT_BROWN 207   // hex value = CF
-#define SHADE_PURPLE 175        // hex value = AF
-#define SHADE_CYAN 127          // hex value = 7F
-#define SHADE_LAVENDER 191      // hex value = BF
 
 
-Triangle triangle_create(const Vector* v1, const Vector* v2, const Vector* v3, int color) {
-    Triangle triangle;
-    triangle.v[0] = *v1;
-    triangle.v[1] = *v2;
-    triangle.v[2] = *v3;
-    triangle.color = color;
-    return triangle;
-}
-
-
-void triangle_draw_2D(int x1, int y1, int x2, int y2, int x3, int y3, int color, uint32_t* pixelmap) {
-
-    //printf("draw triangle main\n");
-
-    int temp_x,
-        temp_y,
-        new_x;
-
-    // test for h lines and v lines
-    if((x1 == x2 && x2 == x3) || (y1 == y2 && y2 == y3)) {
-        return;
-    }
-
-    //sort p1, p2, p3 in ascending y order
-    if(y2 < y1)
-    {
-        temp_x = x2;
-        temp_y = y2;
-        x2 = x1;
-        y2 = y1;
-        x1 = temp_x;
-        y1 = temp_y;
-    }
-
-    // now we know that p1 and p2 are in order
-    if(y3 < y1)
-    {
-        temp_x = x3;
-        temp_y = y3;
-        x3 = x1;
-        y3 = y1;
-        x1 = temp_x;
-        y1 = temp_y;
-    }
-
-    // finally test y3 against y2
-    if(y3 < y2)
-    {
-        temp_x = x3;
-        temp_y = y3;
-        x3 = x2;
-        y3 = y2;
-        x2 = temp_x;
-        y2 = temp_y;
-    }
-
-    // do trivial rejection tests (entire triangle outside frame)
-    if( y3 < poly_clip_min_y || y1 > poly_clip_max_y ||
-        (x1 < poly_clip_min_x && x2 < poly_clip_min_x && x3 < poly_clip_min_x) ||
-        (x1 > poly_clip_max_x && x2 > poly_clip_max_x && x3 > poly_clip_max_x) )
-    {
-        return;
-    }
-
-    // test if top of triangle is flat
-    if(y1 == y2)
-    {
-        draw_top_triangle(x1,y1,x2,y2,x3,y3,color,pixelmap);
-    }
-    else
-    if(y2 == y3)
-    {  
-        draw_bottom_triangle(x1,y1,x2,y2,x3,y3,color,pixelmap);
-    }
-    else 
-    {
-        //general triangle that needs to be broken up along long edge.
-        new_x = x1 + (int) ((float)(y2 - y1) * ((float)(x3-x1) / (float)(y3 - y1)));
-
-        draw_bottom_triangle(x1, y1, new_x, y2, x2, y2, color, pixelmap);
-        draw_top_triangle(x2, y2, new_x, y2, x3, y3, color, pixelmap);
-    
-    }
-
-}
-
+/**
+* Draws Flat-top case triangles onto pixel screen.
+*/
 void draw_top_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color, uint32_t* pixelmap) {
 
     float dx_right, // the dx/dy ratio of the right edge of line
@@ -219,6 +116,9 @@ void draw_top_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color
     }
 }   
 
+/**
+* Draws Flat-bottom case triangles onto pixel screen.
+*/
 void draw_bottom_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color, uint32_t* pixelmap) {
 
     float dx_right, // the dx/dy ratio of the right edge of line
@@ -318,7 +218,92 @@ void draw_bottom_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int co
     }
 }
 
+/**
+* Draws Triangle on pixel screen.
+*
+* Algorithm determines whether triangle drawn is one of the following cases:
+* Flat top, Flat bottom or General. In case of general the triangle is sorted and 
+* split dividing the triangle into 2 now distint flat top or bottom triangles.
+*/
+void triangle_draw_2D(int x1, int y1, int x2, int y2, int x3, int y3, int color, uint32_t* pixelmap) {
 
+    //printf("draw triangle main\n");
+
+    int temp_x,
+        temp_y,
+        new_x;
+
+    // test for h lines and v lines
+    if((x1 == x2 && x2 == x3) || (y1 == y2 && y2 == y3)) {
+        return;
+    }
+
+    //sort p1, p2, p3 in ascending y order
+    if(y2 < y1)
+    {
+        temp_x = x2;
+        temp_y = y2;
+        x2 = x1;
+        y2 = y1;
+        x1 = temp_x;
+        y1 = temp_y;
+    }
+
+    // now we know that p1 and p2 are in order
+    if(y3 < y1)
+    {
+        temp_x = x3;
+        temp_y = y3;
+        x3 = x1;
+        y3 = y1;
+        x1 = temp_x;
+        y1 = temp_y;
+    }
+
+    // finally test y3 against y2
+    if(y3 < y2)
+    {
+        temp_x = x3;
+        temp_y = y3;
+        x3 = x2;
+        y3 = y2;
+        x2 = temp_x;
+        y2 = temp_y;
+    }
+
+    // do trivial rejection tests (entire triangle outside frame)
+    if( y3 < poly_clip_min_y || y1 > poly_clip_max_y ||
+        (x1 < poly_clip_min_x && x2 < poly_clip_min_x && x3 < poly_clip_min_x) ||
+        (x1 > poly_clip_max_x && x2 > poly_clip_max_x && x3 > poly_clip_max_x) )
+    {
+        return;
+    }
+
+    // test if top of triangle is flat
+    if(y1 == y2)
+    {
+        draw_top_triangle(x1,y1,x2,y2,x3,y3,color,pixelmap);
+    }
+    else
+    if(y2 == y3)
+    {  
+        draw_bottom_triangle(x1,y1,x2,y2,x3,y3,color,pixelmap);
+    }
+    else 
+    {
+        //general triangle that needs to be broken up along long edge.
+        new_x = x1 + (int) ((float)(y2 - y1) * ((float)(x3-x1) / (float)(y3 - y1)));
+
+        draw_bottom_triangle(x1, y1, new_x, y2, x2, y2, color, pixelmap);
+        draw_top_triangle(x2, y2, new_x, y2, x3, y3, color, pixelmap);
+    
+    }
+
+}
+
+/**
+* Computes the maximum radius or sphere around object.
+*/
 float compute_object_radius(Object* object) {
     // this function computes maximum radius of object.
 
@@ -349,6 +334,9 @@ float compute_object_radius(Object* object) {
     return object->radius;
 }
 
+/**
+* Reads line of PLG file and converts file text into string. 
+*/
 char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
     // this function get a line from a PLG file and strips comments
     // just pretend it's a black box!
@@ -421,6 +409,10 @@ char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
     }
 }
 
+/**
+* Loads PLG files by reading from the text file and declaring variables accordingly.
+* Also has the option to scale the object as it is being constructed.
+*/
 int PLG_Load_Object(Object* object, char *filename, float scale) {
     // this function loads an object off disk and allows it to be scaled.
 
@@ -470,7 +462,7 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
     object->num_polys = total_polys;
     object->state = 1;
 
-    printf("total_vertices: %d, total_polys: %d\n", total_vertices, total_polys);
+    //printf("total_vertices: %d, total_polys: %d\n", total_vertices, total_polys);
     
     object->world_pos.x = 0;
     object->world_pos.y = 0;
@@ -497,7 +489,7 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
         object->vertices_local[index].y = y * scale;
         object->vertices_local[index].z = z * scale;
 
-        printf("x: %.2f, y: %.2f, z: %.2f\n", x, y , z);
+        //printf("x: %.2f, y: %.2f, z: %.2f\n", x, y , z);
 
     }
 
@@ -523,12 +515,10 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
         if(token[0] == '0' && (token[1] == 'x' || token[1] == 'X')) {
             sscanf(&token[2], "%x", &color_des);
             // end if hex color specifier
-            printf("if hex color desc\n");
         }
         else {
             color_des = atoi(token);
             // end if decimal
-            printf("else decimal color desc\n");
         }
         
 
@@ -561,12 +551,11 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
         object->polys[index].clipped    = 0;
         object->polys[index].active     = 1;
 
-        printf("num_points: %d\n", num_vertices);
+        //printf("num_points: %d\n", num_vertices);
 
         // now read in polygon vertice list
         for(index_2 = 0; index_2 < num_vertices; index_2++)
         {
-            printf("token: %s\n", token);
             // read in next vertex number
             if(!(token = strtok(NULL, " ")))
             {
@@ -576,7 +565,7 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
             }
 
             vertex_num = atoi(token);
-            printf("vertex_num: %d\n", vertex_num);
+            //printf("vertex_num: %d\n", vertex_num);
 
             // insert vertex number into polygon
             object->polys[index].vertex_list[index_2] = vertex_num;
@@ -607,7 +596,13 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
     return 1;
 }
 
-void remove_backfaces_and_shade(Object* object) {
+/**
+* Removes backfaces meaning that the method determines if polygons are invisible or clipped from
+* the current viewpoint, and thus only draws relevant polygons. 
+* Relevant polygons of object are also colored and shaded correctly based on direction 
+* to light source.
+*/
+void remove_backfaces_and_shade(Object* object, Vector* view_point) {
     // this function removes all the backfaces of a n object by setting the removed
     // flag. This function assumes that the object has been transformed into 
     // camera coordinates. Also, the function computes the flat shading of the 
@@ -647,12 +642,9 @@ void remove_backfaces_and_shade(Object* object) {
         // compute the line of sight vector, since all coordinates are world all
         // object vertices are already relative to (0,0,0) thus
 
-        /*
-        * view_point mentioned but not declared? set to 0 for now.
-        */
-        sight.x = view_point.x - object->vertices_world[vertex_0].x;
-        sight.y = view_point.y - object->vertices_world[vertex_0].y;
-        sight.z = view_point.z - object->vertices_world[vertex_0].z;
+        sight.x = view_point->x - object->vertices_world[vertex_0].x;
+        sight.y = view_point->y - object->vertices_world[vertex_0].y;
+        sight.z = view_point->z - object->vertices_world[vertex_0].z;
 
         // compute the dot product between line of sight vector and normal to surface
         dp = vector_dot_product(&normal, &sight);
@@ -685,8 +677,6 @@ void remove_backfaces_and_shade(Object* object) {
                     // totally illuminated. use the value to index into color table
 
                     object->polys[curr_poly].shade = object->polys[curr_poly].color - (int) intensity;
-
-                    // printf("\nintensity of polygon %d is %f", curr_poly, intensity);
             
                 } // end if light is reflecting off surface
                 else
@@ -707,6 +697,10 @@ void remove_backfaces_and_shade(Object* object) {
     } // end for curr_poly
 }
 
+/**
+* All relevant and visible sides of the object are converted into screen space
+* and then drawn via triangle_draw_2d() method.
+*/
 void draw_object_solid(Object* object, uint32_t* pixelmap) {
     // this function draws an object shaded solid and can perform
     // simple z extent clipping.
@@ -729,25 +723,9 @@ void draw_object_solid(Object* object, uint32_t* pixelmap) {
     // compute position of object in world
     for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
     {
-        // is this polygon visible?
+        // if polygon is not visible or clipped then continue to next loop iteration
         if(object->polys[curr_poly].visible == 0 || object->polys[curr_poly].clipped) {
-            //printf("poly with index: %d is invisible or clipped\n", curr_poly);
             continue;
-        }
-
-        if(object->polys[curr_poly].visible == 1 || (object->polys[curr_poly].clipped == 0)) {
-            //printf("poly with index: %d is visible\n", curr_poly);
-            int i1 = object->polys[curr_poly].vertex_list[0];
-            int i2 = object->polys[curr_poly].vertex_list[1];
-            int i3 = object->polys[curr_poly].vertex_list[2];
-            //printf("vertices: %d, %d, %d\n", object->polys[curr_poly].vertex_list[0], object->polys[curr_poly].vertex_list[1], object->polys[curr_poly].vertex_list[2]);
-
-            //vector_print(&object->vertices_local[i1]);
-            //vector_print(&object->vertices_local[i2]);
-            //vector_print(&object->vertices_local[i3]);
-            
-            //printf("color: %x shade: %x\n", object->polys[curr_poly].color, object->polys[curr_poly].shade);
-
         }
 
         // extract the vertex numbers
@@ -794,24 +772,19 @@ void draw_object_solid(Object* object, uint32_t* pixelmap) {
         x3 = object->vertices_camera[vertex_3].x;
         y3 = object->vertices_camera[vertex_3].y;
 
-        float viewing_distance = 250;
-        float aspect_ratio = 1;
         
 
-        x1 = ((384.0f / 2) + x1 * viewing_distance / z1);
-        y1 = ((216.0f / 2) + aspect_ratio * y1 * viewing_distance / z1);
+        x1 = (((float) WINDOW_WIDTH / 2)  + x1 * VIEWING_DISTANCE / z1);
+        y1 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y1 * VIEWING_DISTANCE / z1);
 
-        x2 = ((384.0f / 2) + x2 * viewing_distance / z2);
-        y2 = ((216.0f / 2) + aspect_ratio * y2 * viewing_distance / z2);
+        x2 = (((float) WINDOW_WIDTH / 2)  + x2 * VIEWING_DISTANCE / z2);
+        y2 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y2 * VIEWING_DISTANCE / z2);
 
-        x3 = ((384.0f / 2) + x3 * viewing_distance / z3);
-        y3 = ((216.0f / 2) + aspect_ratio * y3 * viewing_distance / z3);
+        x3 = (((float) WINDOW_WIDTH / 2)  + x3 * VIEWING_DISTANCE / z3);
+        y3 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y3 * VIEWING_DISTANCE / z3);
 
         
 
-        //printf("before draw function call\n");
-        //printf("color: %x shade: %x\n", object->polys[curr_poly].color, object->polys[curr_poly].shade);
-        
         //shade instead of color according to Lamotte.
         triangle_draw_2D((int) x1, (int) y1, (int) x2, (int) y2, (int) x3, (int) y3, object->polys[curr_poly].shade, pixelmap);
 
@@ -822,21 +795,24 @@ void draw_object_solid(Object* object, uint32_t* pixelmap) {
             x4 = object->vertices_camera[vertex_4].x;
             y4 = object->vertices_camera[vertex_4].y;
 
-            x4 = ((384.0f / 2) + x4 * viewing_distance / z4);
-            y4 = ((216.0f / 2) + aspect_ratio * y4 * viewing_distance / z4);
+            x4 = (((float) WINDOW_WIDTH / 2)  + x4 * VIEWING_DISTANCE / z4);
+            y4 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y4 * VIEWING_DISTANCE / z4);
 
             triangle_draw_2D((int) x1, (int) y1, (int) x3, (int) y3, (int) x4, (int) y4, object->polys[curr_poly].shade, pixelmap);
         } // end if quad
     } // end for curr_poly
 }
 
+/**
+* Sets the world position of an object.
+*/
 void object_position(Object* object, int x, int y, int z) {
-    object->world_pos.x = x;
-    object->world_pos.y = y;
-    object->world_pos.z = z;
-
+    object->world_pos.x = x; object->world_pos.y = y; object->world_pos.z = z;
 }
 
+/**
+* Rotates object along the y-axis.
+*/
 void object_rotate_y(Object* object, float angle_rad) {
 
     int index;
@@ -854,6 +830,9 @@ void object_rotate_y(Object* object, float angle_rad) {
 
 }
 
+/**
+* Rotates object along the z-axis.
+*/
 void object_rotate_z(Object* object, float angle_rad) {
 
     int index;

@@ -129,17 +129,17 @@ void io_handle_events(IO* io) {
         *io->quit = true;
     }
 
-    /*
+    
 
     if(io_is_key_down(io, SDL_SCANCODE_A)) {
-        io->camera->fYaw -= 0.01;      
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_D)) {
         io->camera->fYaw += 0.01;      
     }
 
-    Vector* forward = vector_scale(io->camera->direction, 0.1);
+    if(io_is_key_down(io, SDL_SCANCODE_D)) {
+        io->camera->fYaw -= 0.01;      
+    }
+
+    Vector* forward = vector_scale(io->camera->direction, 0.5);
 
     if(io_is_key_down(io, SDL_SCANCODE_W)) {
         io->camera->position = vector_add(io->camera->position, forward);
@@ -153,55 +153,39 @@ void io_handle_events(IO* io) {
 
 
 
-  
+    /*
 
     if(io_is_key_down(io, SDL_SCANCODE_UP)) {
-        io->camera->position->y += 0.1; 
+        io->camera->position->y += 1; 
     }
 
     if(io_is_key_down(io, SDL_SCANCODE_DOWN)) {
-        io->camera->position->y -= 0.1; 
+        io->camera->position->y -= 1; 
     }
 
     if(io_is_key_down(io, SDL_SCANCODE_RIGHT)) {
-        io->camera->position->x += 0.1;
+        io->camera->position->x += 1;
     }
 
     if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
-        io->camera->position->x -= 0.1; 
+        io->camera->position->x -= 1; 
     }
 
     if(io_is_key_down(io, SDL_SCANCODE_I)) {
-        io->camera->position->z += 0.1;
+        io->camera->position->z += 1;
     }
 
     if(io_is_key_down(io, SDL_SCANCODE_O)) {
-        io->camera->position->z -= 0.1; 
+        io->camera->position->z -= 1; 
     }
 
     if(io_is_key_down(io, SDL_SCANCODE_R)) {
-        *io->camera = *camera_init(vector_create(0,0,-2));
+        *io->camera = *camera_init(vector_create(0,0,0));
     }
 
-  
     */
 
 
-    if(io_is_key_down(io, SDL_SCANCODE_W)) {
-        io->object->world_pos.z += 0.1;
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_S)) {
-        io->object->world_pos.z -= 0.1;
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_A)) {
-        io->object->world_pos.x -= 1;
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_D)) {
-        io->object->world_pos.x += 1;
-    }
 
     if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
         object_rotate_y(io->object, (M_PI / 64));
@@ -219,15 +203,6 @@ void io_handle_events(IO* io) {
         object_rotate_z(io->object, -(M_PI / 64));
     }
 
-    if(io_is_key_down(io, SDL_SCANCODE_P)) {
-        for(int i = 0; i < 5; i++)
-        {
-            printf("vertice %d\n", i);
-            printf("local:\n");
-            vector_print(&io->object->vertices_local[i]);
-            printf("world: \n");
-            vector_print(&io->object->vertices_world[i]);
-        }
-    }
+
     
 }
