@@ -58,23 +58,28 @@ static struct {
 }state;
 
 
-Object object;
+Object test_objects[16];
+
 
 void init() {
 
 
     state.camera = camera_init(vector_create(0,0,0));
-    state.io = io_create(&state.quit, state.camera, &object);
+    state.io = io_create(&state.quit, state.camera, NULL);
 
 
-    if(!PLG_Load_Object(&object, "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/assets/pyramid.plg", 1))
+    for(int index = 0; index < 16; index++)
     {
-        printf("\n Could not find file\n");
-        return;
+         PLG_Load_Object(&test_objects[index], "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/assets/cube.plg", 1);
     }
-    printf("\nobject created succesfully!\n");
+ 
 
-    object_position(&object, 0, 0, 300);
+    for(int index=0; index<16; index++)
+    {
+        test_objects[index].world_pos.x=-200 + (index%4)*100;
+        test_objects[index].world_pos.y=0;
+        test_objects[index].world_pos.z=200 + 300*(index>>2);
+    }       
     
 
 
@@ -130,7 +135,6 @@ int main( int arc, char* args[] ) {
         SDL_GetError());
 
     init();
-    int index;
 
 
     /**
@@ -149,28 +153,32 @@ int main( int arc, char* args[] ) {
 
         io_handle_events(state.io);
         camera_update(state.camera);
+        
+        generate_poly_list(NULL, 0);
 
-        // convert the local coordinates into world and camera coordinates for shading
-        // and projection. note the viewer is at (0,0,0) with angles 0,0,0
-        // so the transformation is imply to add the world position to each 
-        // local vertex
-        for(index = 0; index < object.num_vertices; index++)
+        for(int index = 0; index < 16; index++)
         {
-            object.vertices_world[index].x = object.vertices_local[index].x + object.world_pos.x;
-            object.vertices_world[index].y = object.vertices_local[index].y + object.world_pos.y;
-            object.vertices_world[index].z = object.vertices_local[index].z + object.world_pos.z;
-
-            object.vertices_camera[index] = *vector_matrix_mul(&object.vertices_world[index], state.camera->lookAt);
-           
+            if(!object_culling(&test_objects[index], state.camera->lookAt, 1))
+            {
+                // convert to world coordinates.
+                object_local_to_world_transformation(&test_objects[index]);
+                // shade and remove backfaces, ignore the backface part for now
+                remove_backfaces_and_shade(&test_objects[index], state.camera->position);
+                // convert world coordinates to camera coordinates.
+                object_view_transformation(&test_objects[index], state.camera->lookAt);
+                //clip the object polygons against viewing volume
+                clip_object_3D(&test_objects[index], 0);
+                // generate poly list
+                generate_poly_list(&test_objects[index], 1);
+                //
+            }
         }
 
+        sort_polygon_list();
+
+        draw_poly_list(state.pixels);
         
 
-        // shade and remove backfaces, ignore the backface part for now
-        remove_backfaces_and_shade(&object, state.camera->position);
-
-        //draw the object
-        draw_object_solid(&object, state.pixels);
 
     
 

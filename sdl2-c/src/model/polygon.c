@@ -7,9 +7,24 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define CLIP_FAR_Z 1000.0f
+#define CLIP_NEAR_Z 1.0f
+#define OBJECT_CULL_Z_MODE   0
+#define OBJECT_CULL_XYZ_MODE 1
+#define INVERSE_ASPECT_RATIO 1
+
+#define RESET_POLY_LIST 0
+
+#define CLIP_Z_MODE 0
+#define CLIP_XYZ_MODE 1
 
 Vector light_source = {-0.913913, 0.389759, -0.113369};
-float ambient_light = 6;
+float  ambient_light = 6;
+
+facet  world_poly_storage[MAX_POLYS_PER_FRAME];
+facet* world_polys[MAX_POLYS_PER_FRAME];
+int num_polys_frame;
+
 
 
 /**
@@ -631,9 +646,8 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point) {
         vertex_2 = object->polys[curr_poly].vertex_list[2];
 
         // the vector u = v0->v1
-        u = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
-
         // the vector v = v0->v2
+        u = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
         v = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
 
         // compute the normal to polygon v x u
@@ -848,4 +862,457 @@ void object_rotate_z(Object* object, float angle_rad) {
         object->vertices_local[index].z = m.matrix[0][2];
     }
 
+}
+
+/**
+* Transforms local coordinates to world coordinates by simply translating (adding) world pos with
+* local coordinates.
+*/
+void object_local_to_world_transformation(Object* object) {
+
+    for(int index = 0; index < object->num_vertices; index++)
+    {
+        object->vertices_world[index].x = object->vertices_local[index].x + object->world_pos.x;
+        object->vertices_world[index].y = object->vertices_local[index].y + object->world_pos.y;
+        object->vertices_world[index].z = object->vertices_local[index].z + object->world_pos.z;
+        
+    }
+}
+
+/**
+* Convert the local coordinates into world and camera coordinates for shading
+* and projection. Note the viewer is at (0,0,0) with angles 0,0,0
+* so the transformation is imply to add the world position to each 
+* local vertex
+*/
+void object_view_transformation(Object *object, Matrix *view_inverse) {  
+
+        for(int index = 0; index < object->num_vertices; index++) 
+        {
+            object->vertices_camera[index] = *vector_matrix_mul(&object->vertices_world[index], view_inverse);
+        }
+}
+
+/**
+* Determines if object is out of frame by comparing bounding sphere to z and then x,y frame.
+* @return 1 means object is out of frame and should be removed. 0 means it should not be removed.
+*/
+int object_culling(Object* object, Matrix* view_inverse, int mode) {
+    // this function determines if an entire object is within the viewing volume 
+    // or not by testing if the bounding sphere of the object in question 
+    // is within the viewing volume. In essence, this function "culls" entire objects
+
+    float x_bsphere,    // the x,y,z components of the projected center of object
+          y_bsphere,
+          z_bsphere,
+          radius,       // the radius of object
+          x_compare,    // the extents of the clipping volume in x and y at the 
+          y_compare;    // bound spheres current z
+
+    //first transform world position of object into camera coordinates
+    Vector view_pos = *vector_matrix_mul(&object->world_pos, view_inverse);
+    x_bsphere = view_pos.x;
+    y_bsphere = view_pos.y;
+    z_bsphere = view_pos.z;
+
+    // extract radius of object
+    radius = object->radius;
+
+    if(mode == OBJECT_CULL_Z_MODE)
+    {
+        // first test against near and far z planes
+        if(((z_bsphere - radius) > CLIP_FAR_Z) || ((z_bsphere + radius) < CLIP_NEAR_Z)) {
+            return 1;
+        } else {
+            return 0;
+        } // end if z only
+    }
+    else
+    {
+        // perform full x,y,z test
+        if(((z_bsphere - radius) > CLIP_FAR_Z) || ((z_bsphere + radius) < CLIP_NEAR_Z)) {
+            return 1;
+        }
+
+        // test against x right and left planes, first compute viewing volume
+        // extents at position z position of bounding sphere
+
+        x_compare = (( (float) WINDOW_WIDTH / 2) * z_bsphere) / VIEWING_DISTANCE;
+
+        if(((x_bsphere - radius) > x_compare) || ((x_bsphere + radius) < (-x_compare))) {
+            return 1;
+        }
+
+
+        // finally test against y top and bottom planes
+        y_compare = (INVERSE_ASPECT_RATIO * ((float) WINDOW_HEIGHT / 2) * z_bsphere) / VIEWING_DISTANCE;
+
+        if(((y_bsphere - radius) > y_compare) || ((y_bsphere + radius) < (-y_compare))) {
+            return 1;
+        }
+        
+        // else it cant be removed.
+        return 0;
+    }
+}
+
+void clip_object_3D(Object* object, int mode) {
+    //this fnuction clip an object in camera coordiantes against the 3D viewing
+    // volume. The function has 2 mode of operation. In CLIP_Z_MODE the 
+    // function performs only a simple z extend clip with the near and far clipping
+    // planes. In CLIP_XYZ_MODE the function performs a full 3D clip.
+
+    int curr_poly;      // the current polygon being processed
+
+    float x1, y1, z1,
+          x2, y2, z2,
+          x3, y3, z3,
+          x4, y4,z4,    // working variables used to hold vertices
+
+          x1_compare,   // used to hold clipping points on x and y
+          y1_compare,
+          x2_compare,
+          y2_compare,
+          x3_compare,
+          y3_compare,
+          x4_compare,
+          y4_compare;
+
+    // test if trivial z clipping is being requested
+    if(mode == CLIP_Z_MODE)
+    {
+        // attempt to clip each polygon against viewing volume
+        for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
+        {
+            // extract z components
+            z1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].z;
+            z2 = object->vertices_camera[object->polys[curr_poly].vertex_list[1]].z;
+            z3 = object->vertices_camera[object->polys[curr_poly].vertex_list[2]].z;
+
+            // est if this is a quad
+            if(object->polys[curr_poly].num_points == 4) 
+            {
+                // extract 4th z component
+                z4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].z;
+            }
+            else {
+                z4 = z3;
+            }
+
+            // perfrom near and far z clipping test
+            if( (z1 < CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) ||
+                (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z && z4 > CLIP_FAR_Z))
+            {
+                // set clipped flag
+                object->polys[curr_poly].clipped = 1;
+            }
+        } // end for curr_poly
+    }
+    else
+    {
+        // CLIP_XYZ_MODE, perform full 3D viewing volume clip
+        for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
+        {
+            // extract x,y and z components
+            x1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].x;
+            y1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].y;
+            z1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].z;
+
+            x2 = object->vertices_camera[object->polys[curr_poly].vertex_list[1]].x;
+            y2 = object->vertices_camera[object->polys[curr_poly].vertex_list[1]].y;
+            z2 = object->vertices_camera[object->polys[curr_poly].vertex_list[1]].z;
+
+            x3 = object->vertices_camera[object->polys[curr_poly].vertex_list[2]].x;
+            y3 = object->vertices_camera[object->polys[curr_poly].vertex_list[2]].y;
+            z3 = object->vertices_camera[object->polys[curr_poly].vertex_list[2]].z;
+
+            // test if this is a quad
+            if(object->polys[curr_poly].num_points == 4)
+            {
+                // extract 4th vertex
+                x4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].x;
+                y4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].y;
+                z4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].z;
+
+                // do clipping tests
+
+                // perform near and far clipping first
+                if( (z1 < CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) ||
+                (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z && z4 > CLIP_FAR_Z))
+                {
+                    // set clipped flag
+                    object->polys[curr_poly].clipped = 1;
+                    continue;
+                }
+
+                // pre-compute x comparison ranges
+                x1_compare = (((float) WINDOW_WIDTH / 2) * z1) / VIEWING_DISTANCE;
+                x2_compare = (((float) WINDOW_WIDTH / 2) * z2) / VIEWING_DISTANCE;
+                x3_compare = (((float) WINDOW_WIDTH / 2) * z3) / VIEWING_DISTANCE;
+                x4_compare = (((float) WINDOW_WIDTH / 2) * z4) / VIEWING_DISTANCE;
+
+                // perform x tests
+                if(!((x1 > (-x1_compare) || x2 > (-x2_compare) || x3 > (-x3_compare) || x4 > (-x4_compare)) &&
+                     (x1 < x1_compare || x2 < x2_compare || x3 < x3_compare || x4 < x4_compare)))
+                {
+                    // set clipped flag
+                    object->polys[curr_poly].clipped = 1;
+                }
+
+                //pre-compute y comparison ranges
+                y1_compare = (((float) WINDOW_HEIGHT / 2) * z1) / VIEWING_DISTANCE;  // inverse aspect ratio here?
+                y2_compare = (((float) WINDOW_HEIGHT / 2) * z2) / VIEWING_DISTANCE; 
+                y3_compare = (((float) WINDOW_HEIGHT / 2) * z3) / VIEWING_DISTANCE; 
+                y4_compare = (((float) WINDOW_HEIGHT / 2) * z4) / VIEWING_DISTANCE; 
+
+                // perform y test
+                if(!((y1 > (-y1_compare) || y2 > (-y2_compare) || y3 > (-y3_compare) || y4 > (-y4_compare)) && 
+                    (y1 < y1_compare || y2 < y2_compare || y3 < y3_compare || y4 < y4_compare)))
+                {
+                    // set clipped flag
+                    object->polys[curr_poly].clipped = 1;
+                    continue;
+                }
+            } // end if quad
+            else
+            {
+                // must be triangle, perform clipping tests on only 3 vertices
+
+                // do clipping tests
+
+                // perform near and far clipping first
+                if( (z1 < CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) ||
+                (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z))
+                {
+                    // set clipped flag
+                    object->polys[curr_poly].clipped = 1;
+                    continue;
+                }
+
+                // pre-compute x comparison ranges
+                x1_compare = (((float) WINDOW_WIDTH / 2) * z1) / VIEWING_DISTANCE;
+                x2_compare = (((float) WINDOW_WIDTH / 2) * z2) / VIEWING_DISTANCE;
+                x3_compare = (((float) WINDOW_WIDTH / 2) * z3) / VIEWING_DISTANCE;
+
+                // perform x tests
+                if(!((x1 > (-x1_compare) || x2 > (-x2_compare) || x3 > (-x3_compare)) &&
+                     (x1 < x1_compare || x2 < x2_compare || x3 < x3_compare)))
+                {
+                    // set clipped flag
+                    object->polys[curr_poly].clipped = 1;
+                }
+
+                //pre-compute y comparison ranges
+                y1_compare = (((float) WINDOW_HEIGHT / 2) * z1) / VIEWING_DISTANCE;  // inverse aspect ratio here?
+                y2_compare = (((float) WINDOW_HEIGHT / 2) * z2) / VIEWING_DISTANCE; 
+                y3_compare = (((float) WINDOW_HEIGHT / 2) * z3) / VIEWING_DISTANCE; 
+
+                // perform y test
+                if(!((y1 > (-y1_compare) || y2 > (-y2_compare) || y3 > (-y3_compare)) && 
+                    (y1 < y1_compare || y2 < y2_compare || y3 < y3_compare)))
+                {
+                    // set clipped flag
+                    object->polys[curr_poly].clipped = 1;
+                    continue;
+                }
+            } // end else triangle
+        }
+    }
+}
+
+// to reset list call (NULL, RESET_POLY_LIST)
+void generate_poly_list(Object* object, int mode) {
+    // this function is used to generate the final plygon list that will be
+    // rendered. Object by object the list is built up.
+
+    int vertex,
+        curr_vertex,
+        curr_poly;
+    
+    // test if this is the first object to be inserted
+    if(mode == RESET_POLY_LIST)
+    {
+        // reset number of polys to 0.
+        num_polys_frame = 0;
+        return;
+    } 
+
+    for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
+    {
+        // insert all visible polygons into polygon list
+        if(object->polys[curr_poly].visible && !object->polys[curr_poly].clipped)
+        {
+            // add this poly to poly list
+
+            // first copy data and vertices into an open slot in storage area
+            world_poly_storage[num_polys_frame].num_points = object->polys[curr_poly].num_points;
+            world_poly_storage[num_polys_frame].color      = object->polys[curr_poly].color;
+            world_poly_storage[num_polys_frame].shade      = object->polys[curr_poly].shade;
+            world_poly_storage[num_polys_frame].shading    = object->polys[curr_poly].shading;
+            world_poly_storage[num_polys_frame].two_sided  = object->polys[curr_poly].two_sided;
+            world_poly_storage[num_polys_frame].visible    = object->polys[curr_poly].visible;
+            world_poly_storage[num_polys_frame].clipped    = object->polys[curr_poly].clipped;
+            world_poly_storage[num_polys_frame].active     = object->polys[curr_poly].active;
+
+            // now copy vertices
+            for(curr_vertex = 0; curr_vertex < object->polys[curr_poly].num_points; curr_vertex++)
+            {
+                // extract vertex number
+                vertex = object->polys[curr_poly].vertex_list[curr_vertex];
+                // extract x,y,z values
+                world_poly_storage[num_polys_frame].vertex_list[curr_vertex].x = object->vertices_camera[vertex].x;
+                world_poly_storage[num_polys_frame].vertex_list[curr_vertex].y = object->vertices_camera[vertex].y;
+                world_poly_storage[num_polys_frame].vertex_list[curr_vertex].z = object->vertices_camera[vertex].z;
+            }
+
+            // assing pointer to it
+            world_polys[num_polys_frame] = &world_poly_storage[num_polys_frame];
+
+            // increment number of polys
+            num_polys_frame++;
+
+        } // end if poly visible
+    } // end for curr_poly
+}
+
+int polygon_compare(facet** arg1, facet** arg2) {
+    // this function compares the average z's of two polygons and is used by the
+    // depth sort surface ordering algorithm
+
+    float z1, z2;
+    facet_ptr poly_1, poly_2;
+
+    // dereference the poly pointers
+    poly_1 = (facet*) *arg1;
+    poly_2 = (facet*) *arg2;
+
+    // compute z average of each polygon
+    if(poly_1->num_points == 3)
+    {
+        // compute z average of each polygon
+        z1 = (float) 0.33 * (poly_1->vertex_list[0].z + poly_1->vertex_list[1].z + poly_1->vertex_list[2].z);
+
+    }
+    else
+    {
+        z1 = (float) 0.25 * (poly_1->vertex_list[0].z + poly_1->vertex_list[1].z + poly_1->vertex_list[2].z + poly_1->vertex_list[3].z);
+    }
+
+    // now polygon 2
+
+    if(poly_2->num_points == 3)
+    {
+        // compute average of 3 points polygon
+        z2 = (float) 0.33 * (poly_2->vertex_list[0].z + poly_2->vertex_list[1].z + poly_2->vertex_list[2].z);
+    }
+    else 
+    {
+        // compute average of 4 point polygon
+        z2 = (float) 0.25 * (poly_2->vertex_list[0].z + poly_2->vertex_list[1].z + poly_2->vertex_list[2].z + poly_2->vertex_list[3].z);
+    }
+
+    // compare z1 and z2, such that polys will be sorted in descending Z order.
+    if(z1 > z2) 
+    {
+        return(-1);
+    }
+    else if(z1 < z2)
+    {
+        return(1);
+    }
+    else
+    {
+        return(0);
+    }
+}
+
+void sort_polygon_list(void) {
+    // this function des a simple z sort on the poly list to order surfaces
+    // the list is sorted in descending order, i.e farther polygons first.
+    qsort((void *) world_polys, num_polys_frame, sizeof(facet*), (const void*) polygon_compare);
+}
+
+/*
+* Draws all polygons in list. Similar to object_draw_solid.
+*/
+void draw_poly_list(uint32_t *pixelmap) {
+    // this function draws the golbal polygon list generated by calls to
+    // generate_poly_list
+
+    int curr_poly,      // the current polygon
+        is_quad=0;      // quadrilateral flag
+
+    float x1, y1, z1,
+          x2, y2, z2,
+          x3, y3, z3,
+          x4, y4, z4;
+
+    // draw each polygon in list
+    for(curr_poly = 0; curr_poly < num_polys_frame; curr_poly++)
+    {
+        // do Z clipping first before projection
+        z1 = world_polys[curr_poly]->vertex_list[0].z;
+        z2 = world_polys[curr_poly]->vertex_list[1].z;
+        z3 = world_polys[curr_poly]->vertex_list[2].z;
+    
+
+        // test if this is a quad
+        if(world_polys[curr_poly]->num_points == 4)
+        {
+            // extract vertex number and z component for clipping and projection
+            z4 = world_polys[curr_poly]->vertex_list[3].z;
+
+            // set quad flag
+            is_quad = 1;
+        } else {
+            z4 = z3;
+        }
+
+        #if 0
+                // perform z clipping test
+
+                if((z1<clip_near_z && z2 < clip_near_z && z3 < clip_near_z && z4 < clip_near_z) || 
+                (z1 > clip_far_z && z2 > clip_far_z && z3 > clip_far_z && z4 > clip_far_z))
+                {
+                    continue;
+                }
+        #endif
+
+        x1 = world_polys[curr_poly]->vertex_list[0].x;
+        y1 = world_polys[curr_poly]->vertex_list[0].y;
+
+        x2 = world_polys[curr_poly]->vertex_list[1].x;
+        y2 = world_polys[curr_poly]->vertex_list[1].y;
+
+        x3 = world_polys[curr_poly]->vertex_list[2].x;
+        y3 = world_polys[curr_poly]->vertex_list[2].y;
+
+        // compute screen position of points
+        x1 = (((float) WINDOW_WIDTH / 2)  + x1 * VIEWING_DISTANCE / z1);
+        y1 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y1 * VIEWING_DISTANCE / z1);
+
+        x2 = (((float) WINDOW_WIDTH / 2)  + x2 * VIEWING_DISTANCE / z2);
+        y2 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y2 * VIEWING_DISTANCE / z2);
+
+        x3 = (((float) WINDOW_WIDTH / 2)  + x3 * VIEWING_DISTANCE / z3);
+        y3 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y3 * VIEWING_DISTANCE / z3);
+
+            
+
+        //shade instead of color according to Lamotte.
+        triangle_draw_2D((int) x1, (int) y1, (int) x2, (int) y2, (int) x3, (int) y3, world_polys[curr_poly]->shade, pixelmap);
+
+        // draw second poly if this is a quad
+        if(is_quad)
+        {
+            // extract the point
+            x4 = world_polys[curr_poly]->vertex_list[3].x;
+            y4 = world_polys[curr_poly]->vertex_list[3].y;
+
+            x4 = (((float) WINDOW_WIDTH / 2)  + x4 * VIEWING_DISTANCE / z4);
+            y4 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y4 * VIEWING_DISTANCE / z4);
+
+            triangle_draw_2D((int) x1, (int) y1, (int) x3, (int) y3, (int) x4, (int) y4, world_polys[curr_poly]->shade, pixelmap);
+        } // end if quad
+    } // end for curr_poly
 }

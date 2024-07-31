@@ -182,13 +182,16 @@ void matrix_perspective_transformation(Matrix* m1, float distance);
 */
 Matrix* matrix_copy(const Matrix* original);
 
-Vector* matrix_javidx9(const Vector* real_world_position);
-
+/**
+* Creates a "Point At" matrix that basically defines the view space. The inverse of this matrix
+* becomes the view space transformation.
+*/
 Matrix* matrix_point_at(const Vector* pos, const Vector* target, const Vector* up);
 
+/**
+* Direct hardwired inverse of the specific "Point At" matrix, which result the final
+* View space "Look At" transformation matrix.
+*/
 Matrix* matrix_quick_lookat_inverse(const Matrix* pointAt);
-
-
-Matrix* matrix_screen_transformation(const Matrix* real_world_position);
 
 #endif

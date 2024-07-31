@@ -707,78 +707,11 @@ Matrix* matrix_copy(const Matrix* original) {
     return copy;
 }
 
-Matrix* matrix_screen_transformation(const Matrix* real_world_position) {
 
-    Matrix* screen_coordinates;
-    Vector* center = vector_create(384.0 / 2, 216.0 / 2, 0);
-
-    // scenario Z = 0
-    if(real_world_position->matrix[0][2] == 0) {
-        Matrix* translation_back = matrix_create_translation_matrix(center);
-        screen_coordinates = matrix_mul(screen_coordinates, translation_back);
-        return screen_coordinates;
-    }
-     
-    Matrix* transformation = matrix_create_identity_matrix();
-    float znear = 0.1f;
-    float zfar = 100.0f;
-
-    float a = 384.0 / 216.0; //aspect ratio just stretches the screen? use 1280x720 instead?
-    float f = 1 / tanf((2 * M_PI / 3) / 2);
-    float q = zfar / (zfar - znear);
-
-    transformation->matrix[0][0] = a*f; // javidx9: (a*f)
-    transformation->matrix[1][1] = f;
-    transformation->matrix[2][2] = q;
-    transformation->matrix[2][3] = 1;
-    transformation->matrix[3][2] = (-znear) * q;
-    transformation->matrix[3][3] = 0;
-
-    screen_coordinates = matrix_mul(real_world_position, transformation);
-    
-    for(int i = 0; i < 4; i++)
-    {
-        screen_coordinates->matrix[i][0] /= screen_coordinates->matrix[i][3];
-        screen_coordinates->matrix[i][1] /= screen_coordinates->matrix[i][3];
-        screen_coordinates->matrix[i][2] /= screen_coordinates->matrix[i][3];
-        screen_coordinates->matrix[i][3] = 1;
-    }
-    
-
-    Matrix* translation_back = matrix_create_translation_matrix(center);
-    screen_coordinates = matrix_mul(screen_coordinates, translation_back);
-        
-
-    return screen_coordinates;
-
-}
-
-
-Vector* matrix_javidx9(const Vector* real_world_position) {
-
-    Vector* center = vector_create(384.0 / 2, 216.0 / 2, 0);
-
-    if(real_world_position->z == 0) {
-        Matrix* translation_back = matrix_create_translation_matrix(center);
-        Matrix* screen_coordinates_unchanged = matrix_mul(vector_as_matrix(real_world_position), translation_back);
-        return vector_from_matrix_row(screen_coordinates_unchanged, 0);
-    }
-
-   
-    //might need translation to origin first.
-    Matrix* screen_coordinates = matrix_screen_transformation(vector_as_matrix(real_world_position));
-    
-
-    Vector* screen_position = vector_from_matrix_row(screen_coordinates, 0);
-    return screen_position;
-
-
-    
-
-    
-
-}
-
+/**
+* Creates a "Point At" matrix that basically defines the view space. The inverse of this matrix
+* becomes the view space transformation.
+*/
 Matrix* matrix_point_at(const Vector* pos, const Vector* target, const Vector* up) {
     
     Vector* forward = vector_sub(pos, target);
@@ -810,6 +743,10 @@ Matrix* matrix_point_at(const Vector* pos, const Vector* target, const Vector* u
     return pointAt;
 }
 
+/**
+* Direct hardwired inverse of the specific "Point At" matrix, which result the final
+* View space "Look At" transformation matrix.
+*/
 Matrix* matrix_quick_lookat_inverse(const Matrix* pointAt) {
 
     Matrix* lookAt = matrix_create_identity_matrix();

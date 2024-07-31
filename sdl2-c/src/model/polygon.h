@@ -12,11 +12,12 @@
 #define MAX_POINTS_PER_POLYGON 4
 #define MAX_POLYS_PER_OBJECT 6
 
+#define MAX_POLYS_PER_FRAME 128
+
 #define poly_clip_max_x WINDOW_WIDTH - 1
 #define poly_clip_max_y WINDOW_HEIGHT - 1
 #define poly_clip_min_x 0
 #define poly_clip_min_y 0
-
 
 #define FLAT_SHADING 1
 
@@ -30,8 +31,6 @@
 #define SHADE_PURPLE 175        // hex value = AF
 #define SHADE_CYAN 127          // hex value = 7F
 #define SHADE_LAVENDER 191      // hex value = BF
-
-
 
 
 
@@ -49,6 +48,20 @@ typedef struct {
     int clipped;
     
 }Polygon;
+
+typedef struct {
+    int num_points;     // number of vertices
+    int color;          // color of polygon
+    int shade;          // the final shade of color lighting
+    int shading;        // type of shading to use
+    int two_sided;      // is the facet two sided
+    int visible;        // is the facet transparent
+    int clipped;        // has this poly been clipped
+    int active;         // used to turn faces on and off
+
+    Vector vertex_list[MAX_POINTS_PER_POLYGON]; // the points that make up the polygon facet
+    Vector normal;
+}facet, *facet_ptr;
 
 typedef struct {
     int id;
@@ -114,7 +127,33 @@ void object_rotate_y(Object* object, float angle_rad);
 */
 void object_rotate_z(Object* object, float angle_rad);
 
+/**
+* Transforms local coordinates to world coordinates by simply translating (adding) world pos with
+* local coordinates.
+*/
+void object_local_to_world_transformation(Object* object);
 
+/**
+* Convert the local coordinates into world and camera coordinates for shading
+* and projection. Note the viewer is at (0,0,0) with angles 0,0,0
+* so the transformation is imply to add the world position to each 
+* local vertex
+*/
+void object_view_transformation(Object* object, Matrix* view_inverse);
+
+/**
+* Determines if object is out of frame by comparing bounding sphere to z and then x,y frame.
+* @return 1 means object is out of frame and should be removed. 0 means it should not be removed.
+*/
+int object_culling(Object* object, Matrix* view_inverse, int mode);
+
+void clip_object_3D(Object* object, int mode);
+
+void generate_poly_list(Object* object, int mode);
+
+void sort_polygon_list(void);
+
+void draw_poly_list(uint32_t *pixelmap);
 
 
 #endif
