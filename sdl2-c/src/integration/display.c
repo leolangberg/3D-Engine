@@ -248,7 +248,7 @@ void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelm
         * Addition for textured raycasters 
         */
 
-        
+        /*
         //if you go outside the map then this worldmap value and thus texture_number becomes screwed.
         int texture_number = worldmap[mapX][mapY] - 1;
 
@@ -286,6 +286,25 @@ void raycasting_algorithm(Camera* camera, int worldmap[24][24], uint32_t* pixelm
                 color = (color / 2);
             }
             //no point in having a buffer as pixels are already drawn one by one. 
+            display_draw_pixel(pixelmap, x, y, color);
+        }
+
+        */
+
+        uint32_t color;
+        switch(worldmap[mapX][mapY])
+        {
+            case 1:  color = 0xFF0000FF;    break; //red
+            case 2:  color = 0xFF05FF50;  break; //green
+            case 3:  color = 0xFFFF0000;   break; //blue
+            case 4:  color = 0xFFFFFFFF;  break; //white
+            default: color = 0xFF00FFFF; break; //yellow
+        }
+
+        //give x and y sides different brightness
+        if(side == 1) {color = color / 2;}
+
+        for(int y = drawStart; y < drawEnd; y++) {
             display_draw_pixel(pixelmap, x, y, color);
         }
     }
