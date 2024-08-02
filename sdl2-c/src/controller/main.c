@@ -65,12 +65,12 @@ void init() {
 
 
     state.camera = camera_init(vector_create(0,0,0));
-    state.io = io_create(&state.quit, state.camera, NULL);
+    state.io = io_create(&state.quit, state.camera);
 
 
     for(int index = 0; index < 16; index++)
     {
-         PLG_Load_Object(&test_objects[index], "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/assets/cube.plg", 1);
+        PLG_Load_Object(&test_objects[index], "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/assets/cube.plg", 1);
     }
  
 
@@ -151,6 +151,7 @@ int main( int arc, char* args[] ) {
     {
         frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
 
+        fill_z_buffer(16000);
         io_handle_events(state.io);
         camera_update(state.camera);
         
@@ -163,7 +164,7 @@ int main( int arc, char* args[] ) {
                 // convert to world coordinates.
                 object_local_to_world_transformation(&test_objects[index]);
                 // shade and remove backfaces, ignore the backface part for now
-                remove_backfaces_and_shade(&test_objects[index], state.camera->position);
+                remove_backfaces_and_shade(&test_objects[index], state.camera->position, 1);
                 // convert world coordinates to camera coordinates.
                 object_view_transformation(&test_objects[index], state.camera->lookAt);
                 //clip the object polygons against viewing volume
@@ -174,9 +175,9 @@ int main( int arc, char* args[] ) {
             }
         }
 
-        sort_polygon_list();
+        //sort_polygon_list();
 
-        draw_poly_list(state.pixels);
+        draw_poly_list_z(state.pixels);
         
 
 
@@ -195,7 +196,7 @@ int main( int arc, char* args[] ) {
 
         memset(state.pixels, 0, sizeof(state.pixels));
         char title[250];
-        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || Target: x=%.2f, y=%.2f, z=%.2f || fYaw=%.2f", 
+        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || fYaw=%.2f", 
                     state.camera->position->x, 
                     state.camera->position->y, 
                     state.camera->position->z,
@@ -203,10 +204,6 @@ int main( int arc, char* args[] ) {
                     state.camera->direction->x,
                     state.camera->direction->y,
                     state.camera->direction->z,
-                    
-                    state.camera->target->x,
-                    state.camera->target->y,
-                    state.camera->target->z,
                     
                     state.camera->fYaw);
         SDL_SetWindowTitle(state.window, title);

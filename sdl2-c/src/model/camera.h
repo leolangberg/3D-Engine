@@ -11,9 +11,7 @@ typedef struct {
     Vector* position;
     Vector* direction;
     Vector* camera_plane;
-
     Vector* up;
-    Vector* target;
 
     Matrix* pointAt;
     Matrix* lookAt;

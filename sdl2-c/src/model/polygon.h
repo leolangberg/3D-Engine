@@ -41,7 +41,6 @@ typedef struct {
 
     int color;
     int shade;
-    int shading;
     int two_sided;
     int visible;
     int active;
@@ -53,7 +52,6 @@ typedef struct {
     int num_points;     // number of vertices
     int color;          // color of polygon
     int shade;          // the final shade of color lighting
-    int shading;        // type of shading to use
     int two_sided;      // is the facet two sided
     int visible;        // is the facet transparent
     int clipped;        // has this poly been clipped
@@ -99,7 +97,7 @@ int PLG_Load_Object(Object* object, char *filename, float scale);
 * Relevant polygons of object are also colored and shaded correctly based on direction 
 * to light source.
 */
-void remove_backfaces_and_shade(Object* object, Vector* viewpoint);
+void remove_backfaces_and_shade(Object* object, Vector* viewpoint, int mode);
 
 /**
 * All relevant and visible sides of the object are converted into screen space
@@ -154,6 +152,21 @@ void generate_poly_list(Object* object, int mode);
 void sort_polygon_list(void);
 
 void draw_poly_list(uint32_t *pixelmap);
+
+
+
+int create_z_buffer(unsigned int height);
+
+void delete_z_buffer(void);
+
+void fill_z_buffer(int value);
+
+void draw_triangle_3D_z(int x1, int y1, int z1,
+                        int x2, int y2, int z2,
+                        int x3, int y3, int z3,
+                        int color, uint32_t* pixelmap);
+
+void draw_poly_list_z(uint32_t* pixelmap);
 
 
 #endif

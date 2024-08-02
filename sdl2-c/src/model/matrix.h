@@ -186,7 +186,7 @@ Matrix* matrix_copy(const Matrix* original);
 * Creates a "Point At" matrix that basically defines the view space. The inverse of this matrix
 * becomes the view space transformation.
 */
-Matrix* matrix_point_at(const Vector* pos, const Vector* target, const Vector* up);
+Matrix* matrix_point_at(const Vector* pos, Vector* direction, const Vector* up);
 
 /**
 * Direct hardwired inverse of the specific "Point At" matrix, which result the final

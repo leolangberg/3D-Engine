@@ -712,14 +712,11 @@ Matrix* matrix_copy(const Matrix* original) {
 * Creates a "Point At" matrix that basically defines the view space. The inverse of this matrix
 * becomes the view space transformation.
 */
-Matrix* matrix_point_at(const Vector* pos, const Vector* target, const Vector* up) {
+Matrix* matrix_point_at(const Vector* pos, Vector* direction, const Vector* up) {
     
-    Vector* forward = vector_sub(pos, target);
-    forward = vector_normalize(forward);
-
+    Vector* forward = vector_normalize(direction);
     Vector* a = vector_scale(forward, vector_dot_product(up, forward));
     Vector* newUp = vector_sub(a, up);
-
     Vector* newRight = vector_cross_product(newUp, forward);
 
     Matrix* pointAt = matrix_create_identity_matrix();

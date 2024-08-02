@@ -1,4 +1,5 @@
 #include "polygon.h"
+#include "global.h"
 #include "matrix.h"
 #include "vector.h"
 #include "../integration/display.h"
@@ -24,6 +25,10 @@ float  ambient_light = 6;
 facet  world_poly_storage[MAX_POLYS_PER_FRAME];
 facet* world_polys[MAX_POLYS_PER_FRAME];
 int num_polys_frame;
+
+int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT]; // does not require 2 separate 64k byte arrays because its 2024.
+unsigned int z_buffer_size = ALL_PIXELS;
+
 
 
 
@@ -440,9 +445,7 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
     unsigned int total_vertices,    // total vertices in object
                  total_polys,       // total polygons per object
                  num_vertices,      // number of vertices on a polygon
-                 color_des,         // the color descriptor of a polygon
                  logical_color,     // the final color of polygon
-                 shading,           // the type of shading used on polygon
                  index,             // looping variables
                  index_2,
                  vertex_num,        // vertex number
@@ -528,21 +531,15 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
         // test if number is hexadecimal
 
         if(token[0] == '0' && (token[1] == 'x' || token[1] == 'X')) {
-            sscanf(&token[2], "%x", &color_des);
+            sscanf(&token[2], "%x", &logical_color);
             // end if hex color specifier
         }
         else {
-            color_des = atoi(token);
+            logical_color = atoi(token);
             // end if decimal
         }
+
         
-
-        // extract base color and type of shading
-        logical_color = color_des & 0x00ff;
-        shading       = color_des >> 12;
-
-        printf("colordesc: %x, logical_color: %x, shading: %x\n", color_des, logical_color, shading);
-
         // read number of vertices in polygon
         if(!(token = strtok(NULL, " "))) {
             printf("Error with PLG file %s (stop 5)", filename);
@@ -560,7 +557,6 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
 
         object->polys[index].num_points = num_vertices;
         object->polys[index].color      = logical_color;
-        object->polys[index].shading    = shading;
         object->polys[index].two_sided  = 0;
         object->polys[index].visible    = 1;
         object->polys[index].clipped    = 0;
@@ -612,12 +608,50 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
 }
 
 /**
+* Divides each RGB color value into 16 steps between 0 to 255 (16 each).
+* Each color is then applied the new intensity value multiplied by the ratio of each color.
+*/
+int color_intensity_conversion(int color, int intensity) {
+
+    // Mask to extract each color channel
+    int alpha =  color & 0xFF000000,
+        blue  = (color & 0x00FF0000) >> 16,
+        green = (color & 0x0000FF00) >> 8,
+        red   =  color & 0x000000FF;
+
+    // Calculate the sum of the RGB values
+    int sum = red + green + blue;
+
+    // Avoid division by zero
+    if (sum == 0) {
+        sum = 1;
+    }
+
+    // value of new color based on intensity 0-255.
+    int value = 16 * intensity + 15;
+
+    // Compute the new color channels based on the ratio
+    float percentage_red   = (float) red / sum,
+          percentage_green = (float) green / sum,
+          percentage_blue  = (float) blue / sum;
+
+    red = percentage_red * value;
+    green = percentage_green * value;
+    blue = percentage_blue * value;
+
+    // Combine the channels back into a single integer
+    int new_color = alpha | (blue << 16) | (green << 8) | red;
+
+    return new_color;
+}
+
+/**
 * Removes backfaces meaning that the method determines if polygons are invisible or clipped from
 * the current viewpoint, and thus only draws relevant polygons. 
 * Relevant polygons of object are also colored and shaded correctly based on direction 
 * to light source.
 */
-void remove_backfaces_and_shade(Object* object, Vector* view_point) {
+void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
     // this function removes all the backfaces of a n object by setting the removed
     // flag. This function assumes that the object has been transformed into 
     // camera coordinates. Also, the function computes the flat shading of the 
@@ -670,7 +704,7 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point) {
             object->polys[curr_poly].visible = 1;
 
             // compute light intensity if needed
-            if(object->polys[curr_poly].shading==FLAT_SHADING)
+            if(FLAT_SHADING)
             {
                 // compute the dot product between light source vector
                 // and normal vector to surface
@@ -690,12 +724,12 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point) {
                     // intensity now varies from 0-1, 0 being black or grazing and 1 being
                     // totally illuminated. use the value to index into color table
 
-                    object->polys[curr_poly].shade = object->polys[curr_poly].color - (int) intensity;
+                    object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
             
                 } // end if light is reflecting off surface
                 else
                 {
-                    object->polys[curr_poly].shade = object->polys[curr_poly].color - (int) ambient_light;
+                    object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
                 } // end if use flat shading
             }
             else
@@ -984,6 +1018,10 @@ void clip_object_3D(Object* object, int mode) {
         // attempt to clip each polygon against viewing volume
         for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
         {
+            // reset clipped variable
+            // otherwise once clipped object will always be clipped.
+            object->polys[curr_poly].clipped = 0;
+
             // extract z components
             z1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].z;
             z2 = object->vertices_camera[object->polys[curr_poly].vertex_list[1]].z;
@@ -1013,6 +1051,10 @@ void clip_object_3D(Object* object, int mode) {
         // CLIP_XYZ_MODE, perform full 3D viewing volume clip
         for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
         {
+            // reset clipped variable
+            // otherwise once clipped object will always be clipped.
+            object->polys[curr_poly].clipped = 0;
+
             // extract x,y and z components
             x1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].x;
             y1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].y;
@@ -1148,7 +1190,6 @@ void generate_poly_list(Object* object, int mode) {
             world_poly_storage[num_polys_frame].num_points = object->polys[curr_poly].num_points;
             world_poly_storage[num_polys_frame].color      = object->polys[curr_poly].color;
             world_poly_storage[num_polys_frame].shade      = object->polys[curr_poly].shade;
-            world_poly_storage[num_polys_frame].shading    = object->polys[curr_poly].shading;
             world_poly_storage[num_polys_frame].two_sided  = object->polys[curr_poly].two_sided;
             world_poly_storage[num_polys_frame].visible    = object->polys[curr_poly].visible;
             world_poly_storage[num_polys_frame].clipped    = object->polys[curr_poly].clipped;
@@ -1315,4 +1356,463 @@ void draw_poly_list(uint32_t *pixelmap) {
             triangle_draw_2D((int) x1, (int) y1, (int) x3, (int) y3, (int) x4, (int) y4, world_polys[curr_poly]->shade, pixelmap);
         } // end if quad
     } // end for curr_poly
+}
+
+void draw_poly_list_z(uint32_t* pixelmap) {
+    // this function draws the global polygon list generated by calls to 
+    // generate_poly_list using the z buffer triangle system.
+
+    int curr_poly,      // the current polygon
+        is_quad=0;      // quadrilateral flag
+
+    float x1, y1, z1,
+          x2, y2, z2,
+          x3, y3, z3,
+          x4, y4, z4;
+
+    // draw each polygon in list
+    for(curr_poly = 0; curr_poly < num_polys_frame; curr_poly++)
+    {
+        // do Z clipping first before projection
+        z1 = world_polys[curr_poly]->vertex_list[0].z;
+        z2 = world_polys[curr_poly]->vertex_list[1].z;
+        z3 = world_polys[curr_poly]->vertex_list[2].z;
+    
+
+        // test if this is a quad
+        if(world_polys[curr_poly]->num_points == 4)
+        {
+            // extract vertex number and z component for clipping and projection
+            z4 = world_polys[curr_poly]->vertex_list[3].z;
+
+            // set quad flag
+            is_quad = 1;
+        } else {
+            z4 = z3;
+        }
+
+        #if 0
+                // perform z clipping test
+
+                if((z1<clip_near_z && z2 < clip_near_z && z3 < clip_near_z && z4 < clip_near_z) || 
+                (z1 > clip_far_z && z2 > clip_far_z && z3 > clip_far_z && z4 > clip_far_z))
+                {
+                    continue;
+                }
+        #endif
+
+        x1 = world_polys[curr_poly]->vertex_list[0].x;
+        y1 = world_polys[curr_poly]->vertex_list[0].y;
+
+        x2 = world_polys[curr_poly]->vertex_list[1].x;
+        y2 = world_polys[curr_poly]->vertex_list[1].y;
+
+        x3 = world_polys[curr_poly]->vertex_list[2].x;
+        y3 = world_polys[curr_poly]->vertex_list[2].y;
+
+        // compute screen position of points
+        x1 = (((float) WINDOW_WIDTH / 2)  + x1 * VIEWING_DISTANCE / z1);
+        y1 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y1 * VIEWING_DISTANCE / z1);
+
+        x2 = (((float) WINDOW_WIDTH / 2)  + x2 * VIEWING_DISTANCE / z2);
+        y2 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y2 * VIEWING_DISTANCE / z2);
+
+        x3 = (((float) WINDOW_WIDTH / 2)  + x3 * VIEWING_DISTANCE / z3);
+        y3 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y3 * VIEWING_DISTANCE / z3);
+
+            
+
+        //shade instead of color according to Lamotte.
+        draw_triangle_3D_z((int) x1, (int) y1, (int) z1, (int) x2, (int) y2, (int) z2,(int) x3, (int) y3, (int) z3, world_polys[curr_poly]->shade, pixelmap);
+
+        // draw second poly if this is a quad
+        if(is_quad)
+        {
+            // extract the point
+            x4 = world_polys[curr_poly]->vertex_list[3].x;
+            y4 = world_polys[curr_poly]->vertex_list[3].y;
+
+            x4 = (((float) WINDOW_WIDTH / 2)  + x4 * VIEWING_DISTANCE / z4);
+            y4 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y4 * VIEWING_DISTANCE / z4);
+
+            draw_triangle_3D_z((int) x1, (int) y1, (int) z1,(int) x3, (int) y3, (int) z3,(int) x4, (int) y4, (int) z4, world_polys[curr_poly]->shade, pixelmap);
+        } // end if quad
+    } // end for curr_poly
+
+    
+}
+
+
+void fill_z_buffer(int value) {
+    // this function fills the entire z buffer both banks with the sent value
+    /*
+    __asm__
+        {
+            ; bank 1
+
+            les di,z_bank       ; point es:di to z buffer bank
+            mov ax,value        ; move the value into ax
+            mov cx,z_bank_size  ; number of bytes to fill
+            shr cx,1            ; convert to number of words
+            rep stosw           ; move the value into z buffer
+
+        } // end asm
+    */
+    for(int i = 0; i < z_buffer_size; i++)
+    {
+        z_buffer[i] = value;
+    }
+    
+}
+
+void draw_tb_triangle_3d_z(int x1, int y1, int z1,
+                        int x2, int y2, int z2,
+                        int x3, int y3, int z3,
+                        int color, uint32_t* pixelmap) 
+{
+    // this function draws a triangle that has a flat top
+    float dx_right,     // the dx/dy ratio of the right edge of line
+          dx_left,      // the dx/dy ratio of the left edge of line
+          xs,xe,        // the starting and ending points of the edges
+          height,       // the height of the triangle
+
+          dx,           // general delta's
+          dy,
+          z_left,       // the z value of the left edge of current line
+          z_right,      // the z value of the right edge of current line
+          ay,           // interpolator constant
+          b1y,          // the change of z with respect to y on the left edge
+          b2y;          // the change of z with respect to y on the right edge
+
+    int temp_x,         // used during sorting as temps
+        temp_y,
+        temp_z,
+        xs_clip,        // used by clipping
+        xe_clip,
+        x_index,        // used as looping vars
+        y_index;
+
+    // change these 2 back to float and remove all *32 and >>5
+    // if you dont want to use fixed point during horizontal interpolation
+    float z_middle,       // the z value of the middle between the left and right
+        bx;             // the change of z with respect to x
+
+    unsigned char *dest_addr;   // current image destination
+
+    // test order of x1 and x2, note y1 == y2
+
+    // test if top or bottom is flat and set constant appropriately
+    if(y1 == y2)
+    {
+        //perform computations for a triangle with a flat top
+        if(x2 < x1)
+        {
+            temp_x = x2;
+            temp_z = z2;
+
+            x2 = x1;
+            z2 = z1;
+
+            x1 = temp_x;
+            z1 = temp_z;
+        } // end if swap
+
+        // compute deltas for scan conversion
+        height = y3 - y1;
+
+        dx_left = (x3 - x1) / height;
+        dx_right = (x3 - x2) / height;
+
+        // compute deltas for z interpolation
+        z_left = z1;
+        z_right = z2;
+
+        // vertical interpolants
+        ay = 1 / height;
+        b1y = ay * (z3 - z1);
+        b2y = ay * (z3 - z2);
+
+        // set starting points
+        xs = (float) x1;
+        xe = (float) x2;
+
+    } // end top is flat
+    else 
+    {
+        // bottom must be flat
+        if(x3 < x2)
+        {
+            temp_x = x2;
+            temp_z = z2;
+            
+            x2 = x3;
+            z2 = z3;
+
+            x3 = temp_x;
+            z3 = temp_z;
+        } // end if swap
+
+        // compute deltas for scan conversion
+        height = y3 - y1;
+
+        dx_left = (x2 - x1) / height;
+        dx_right = (x3 - x1) / height;
+
+        // compute deltas for z interpolation
+        z_left = z1;
+        z_right = z1;
+
+        // vertical interpolants
+        ay = 1 / height;
+        b1y = ay * (z2 - z1);
+        b2y = ay * (z3 - z1);
+
+        // set starting points
+        xs = (float) x1;
+        xe = (float) x1;
+
+    } // end else bottom is flat
+
+    // perform y clipping
+
+    // clip top
+    if(y1 < poly_clip_min_y) 
+    {
+        // compute new xs and ys
+        dy = (float)(-y1 + poly_clip_min_y);
+
+        xs = xs + dx_left * dy;
+        xe = xe + dx_right * dy;
+
+        // re-compute z_left and z_right to take into consideration
+        // vertical shift down
+        z_left  += b1y * dy;
+        z_right += b2y * dy;
+
+        // reset y1
+        y1 = poly_clip_min_y;
+
+    } // end if top is off screen
+
+    // clip bottom
+    if(y3 > poly_clip_max_y) {
+        y3 = poly_clip_max_y;
+    }
+
+    // start z buffer at proper bank
+    //z_buffer = z_bank + (y1 << 8) + (y1 << 6);
+
+    // test if x clipping is needed
+    if(x1 >= poly_clip_min_x && x1 <= poly_clip_max_x &&
+       x2 >= poly_clip_min_x && x2 <= poly_clip_max_x &&
+       x3 >= poly_clip_min_x && x3 <= poly_clip_max_x)
+    {
+        // draw the triangle
+
+        for(y_index = y1; y_index <= y3; y_index++)
+        {
+            // 16 bit fixed math point for the horizontal interpolation 
+            // (can be avoided by setting z_middle to float).
+            // z_middle set to float
+
+            z_middle = z_left;
+            bx = (z_right - z_left) / (1 + xe + xs);
+
+            for(x_index = (int) xs; x_index <= (int) xe; x_index++)
+            {
+                //y * WINDOW_WIDTH) + x
+                //printf("x_index_loop\n");
+                //printf("x_index draw 1523: z_buffer[%d] = %d\n", y_index * WINDOW_WIDTH + x_index, z_buffer[y_index * WINDOW_WIDTH + x_index]);
+                if(z_middle < z_buffer[y_index * WINDOW_WIDTH + x_index])
+                {
+                    // update z buffer
+                    z_buffer[y_index * WINDOW_WIDTH + x_index] = (int) z_middle;
+                    // write to image buffer
+                    display_draw_pixel(pixelmap, x_index, y_index, color);
+
+                } // end if update buffer
+
+                // update current z value
+                z_middle += bx;
+
+            } // end draw z buffered line
+
+            // adjust starting point and edning point for scan conversion
+            xs += dx_left;
+            xe += dx_right;
+
+            // adjust vertical z interpolants
+            z_left += b1y;
+            z_right += b2y;
+
+            // adjust video and z buffer offset
+            //z_buffer += 320;
+            
+        } // end for 
+
+    } // end if no x clipping needed
+    else
+    {
+        // clip x axis with slower version
+
+        // draw the triangle
+        for(y_index = y1; y_index <= y3; y_index++)
+        {
+            // do x clip
+            xs_clip = (int) xs;
+            xe_clip = (int) xe;
+
+            // compute horizontal z interpolant
+            z_middle = z_left;
+            bx = (z_right - z_left) / (1 + xe - xs);
+
+            // adjust starting point and ending point
+            xs += dx_left;
+            xe += dx_right;
+
+            // adjust vertical z interpolants
+            z_left += b1y;
+            z_right += b2y;
+
+            // clip line
+            if(xs_clip < poly_clip_min_x)
+            {
+                dx = (-xs_clip + poly_clip_min_x);
+                xs_clip = poly_clip_min_x;
+
+                // re-compute z_middle to take into consideration horizontal shift
+                z_middle += (bx * dx);
+
+            } // end if line is clipp on left
+
+            if(xe_clip > poly_clip_max_x) {
+                xe_clip = poly_clip_max_x;
+            } // ned if line is clipped on right
+
+            // draw the line
+            for(x_index = (int) xs_clip; x_index <= (int) xe_clip; x_index++)
+            {
+                // if current z_middle is less than z-buffer then replace
+                // and update image buffer
+                if(z_middle < z_buffer[y_index * WINDOW_WIDTH + x_index])
+                {
+                    // update z buffer
+                    z_buffer[y_index * WINDOW_WIDTH + x_index] = (int) z_middle;
+
+                    // write to image buffer
+                    display_draw_pixel(pixelmap, x_index, y_index, color);
+
+                } // end if update z buffer
+
+                // update current z value
+                z_middle += bx;
+
+            } // end draw z buffered line
+
+            // adjust video and z_buffer offsets
+            //z_buffer += 320;
+
+        } // end for y_index
+
+    } // ned else x clipping needed
+}
+
+void draw_triangle_3D_z(int x1, int y1, int z1,
+                        int x2, int y2, int z2,
+                        int x3, int y3, int z3,
+                        int color, uint32_t* pixelmap) 
+{
+    // this function sorts the vertices, and splits the triangles into 2 halves and draws them.
+
+    int temp_x,     // used for sorting
+        temp_y,
+        temp_z,
+        new_x,      // used to compute new x and z at triangle splitting point
+        new_z;
+
+    // test for h lines and v lines
+    if((x1 == x2 && x2 == x3) || (y1 == y2 && y2 == y3)) {
+        return;
+    }
+
+    // sort p1, p2, p3 in ascending y order
+    if(y2 < y1)
+    {
+        temp_x = x2;
+        temp_y = y2;
+        temp_z = z2;
+
+        x2 = x1;
+        y2 = y1;
+        z2 = z1;
+
+        x1 = temp_x;
+        y1 = temp_y;
+        z1 = temp_z;
+    }
+
+    // now we know that p1 and p2 are in order
+    if(y3 < y1)
+    {
+        temp_x = x3;
+        temp_y = y3;
+        temp_z = z3;
+
+        x3 = x1;
+        y3 = y1;
+        z3 = z1;
+
+        x1 = temp_x;
+        y1 = temp_y;
+        z1 = temp_z;
+    }
+
+    // finally test y3 against y2
+    if(y3 < y2)
+    {
+        temp_x = x3;
+        temp_y = y3;
+        temp_z = z3;
+
+        x3 = x2;
+        y3 = y2;
+        z3 = z2;
+
+        x2 = temp_x;
+        y2 = temp_y;
+        z2 = temp_z;
+    }
+
+    // do trivial rejection tests
+    if(y3 < poly_clip_min_y || y1 > poly_clip_max_y ||
+       (x1 < poly_clip_min_x && x2 < poly_clip_min_x && x3 < poly_clip_min_x) ||
+       (x1 > poly_clip_max_x && x2 > poly_clip_max_x && x3 > poly_clip_max_x))
+    {
+        return;
+    }
+
+    // test if top of triangle is flat
+    if(y1 == y2 || y2 == y3)
+    {
+        draw_tb_triangle_3d_z(x1,y1,z1,x2,y2,z2,x3,y3,z3,color,pixelmap);
+    }
+    else 
+    {
+        // general tirangle that needs to be borken up along long edge
+        // compute new x,z at split point
+
+        new_x = x1 + (int)((float)(y2 - y1) * (float)(x3 - x1) / (float)(y3 - y1));
+        new_z = z1 + (int)((float)(y2 - y1) * (float)(z3 - z1) / (float)(y3 - y1));
+
+        // draw each sub-triangle
+        if(y2 >= poly_clip_min_y && y1 < poly_clip_max_y)
+        {
+            draw_tb_triangle_3d_z(x1,y1,z1,new_x,y2,new_z,x2,y2,z2,color,pixelmap);
+        }
+
+        if(y3 >= poly_clip_min_y && y1 < poly_clip_max_y)
+        {
+            draw_tb_triangle_3d_z(x2,y2,z2,new_x,y2,new_z,x3,y3,z3,color,pixelmap);
+        }
+    }
 }
