@@ -3,6 +3,7 @@
 #include "../model/polygon.h"
 #include "../model/camera.h"
 #include "../model/global.h"
+#include "../model/wall.h"
 #include "SDL2/SDL_rect.h"
 #include "SDL2/SDL_render.h"
 #include <SDL2/SDL.h>
@@ -12,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
 
 
 /*
@@ -66,8 +68,7 @@ void init() {
 
     state.camera = camera_init(vector_create(0,0,0));
     state.io = io_create(&state.quit, state.camera);
-
-
+      
     for(int index = 0; index < 16; index++)
     {
         PLG_Load_Object(&test_objects[index], "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/assets/cube.plg", 1);
@@ -79,8 +80,7 @@ void init() {
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
-    }       
-    
+    }
 
 
 }
@@ -179,10 +179,7 @@ int main( int arc, char* args[] ) {
 
         draw_poly_list_z(state.pixels);
         
-
-
-    
-
+        
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);
         SDL_RenderCopyEx(
             state.renderer,

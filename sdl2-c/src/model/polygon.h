@@ -3,6 +3,7 @@
 
 #include "vector.h"
 #include "matrix.h"
+#include "wall.h"
 #include "global.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -14,10 +15,6 @@
 
 #define MAX_POLYS_PER_FRAME 128
 
-#define poly_clip_max_x WINDOW_WIDTH - 1
-#define poly_clip_max_y WINDOW_HEIGHT - 1
-#define poly_clip_min_x 0
-#define poly_clip_min_y 0
 
 #define FLAT_SHADING 1
 
@@ -167,6 +164,26 @@ void draw_triangle_3D_z(int x1, int y1, int z1,
                         int color, uint32_t* pixelmap);
 
 void draw_poly_list_z(uint32_t* pixelmap);
+
+void draw_triangle_2d_gouraud(int x1, int y1, int x2, int y2, int x3, int y3, int color, int intensity_1, int intensity_2, int intensity_3, uint32_t *pixelmap);
+
+int color_intensity_conversion(int color, int intensity);
+
+
+
+void build_bsp_tree(Wall *root);
+
+void bsp_traverse(Wall *root, Vector* viewpoint);
+
+void bsp_world_to_camera(Wall *root, Matrix* lookAt);
+
+void bsp_translate(Wall *root, int x_trans, int y_trans, int z_trans);
+
+void bsp_shade(Wall *root);
+
+void bsp_delete(Wall *root);
+
+Wall* create_wall_linked_list();
 
 
 #endif

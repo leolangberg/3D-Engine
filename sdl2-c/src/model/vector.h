@@ -105,4 +105,9 @@ Vector* vector_intersect_2d(const Vector* v0, const Vector* v1, const Vector* w0
 Vector* get_line_intersection(float p0_x, float p0_y, float p1_x, float p1_y, 
     float p2_x, float p2_y, float p3_x, float p3_y);
 
+
+void intersect_lines(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float *xi, float *yi);
+
+int vector_equals(const Vector *v1, const Vector *v2);
+
 #endif

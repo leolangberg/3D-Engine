@@ -188,5 +188,55 @@ Vector* vector_intersect_2d(const Vector* v0, const Vector* v1, const Vector* w0
     return vector_create(NAN,NAN,NAN);
 }
 
+void intersect_lines(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float *xi, float *yi) {
+    // this function computes the intersection fo the sent lines
+    // and returns the intersection point, note that the function assumes
+    // the lines intersect. The function can handle vertical as well as
+    // horizontal lines. Note the function isnt very clever, it simply applies
+    // the math, but we dont need speed since this si a pre-processing step.
 
+    float a1, b1, c1,       // constants of linear equations
+          a2, b2, c2,
+          det_inv,          // the inverse of the determinant of the coefficient matrix.
+          m1, m2;           // the slopes of each line
 
+    // compute slopes, note the cludge for infinity, however, this will
+    // be close enough
+
+    if((x1 - x0) != 0) {
+        m1 = (y1 - y0) / (x1 - x0);
+    }
+    else {
+        m1 = (float)1e+10; // close enough to infinity
+    }
+
+    if((x3 - x2) != 0) {
+        m2 = (y3 - y2) / (x3 - x2);
+    }
+    else {
+        m2 = (float)1e+10;  // close enough to infinity
+    }
+
+    // compute constants
+    a1 = m1;
+    a2 = m2;
+    b1 = -1;
+    b2 = -1;
+
+    c1 = (y0 - m1*x0);
+    c2 = (y2 - m2*x2);
+
+    // compute the inverse of the determinant
+    det_inv = 1 / (a1*b2 - a2*b1);
+
+    // use Cramers rule to compute xi and yi
+    *xi = ((b1*c2 - b2*c1) * det_inv);
+    *yi = ((a2*c1 - a1*c2) * det_inv);
+}
+
+int vector_equals(const Vector *v1, const Vector *v2) {
+    if((v1->x == v2->x) && (v1->y == v2->y) && (v1->z == v2->y)) {
+        return 1;
+    }
+    return 0;
+}

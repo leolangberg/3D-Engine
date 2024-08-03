@@ -128,57 +128,44 @@ void io_handle_events(IO* io) {
         *io->quit = true;
     }
 
-    
+    float speed = 0.5;
+    if(io_is_key_down(io, SDL_SCANCODE_LSHIFT)) {
+        speed = 2;
+    }
 
     if(io_is_key_down(io, SDL_SCANCODE_A)) {
-        io->camera->fYaw -= 0.01;      
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_D)) {
-        io->camera->fYaw += 0.01;      
-    }
-
-    Vector* forward = vector_scale(io->camera->direction, 0.5);
-    if(io_is_key_down(io, SDL_SCANCODE_W)) {
+         Vector* forward = vector_scale(io->camera->direction, speed);
+        Matrix* rotation_y = matrix_create_rotation_matrix_y((M_PI / 2));  
+        forward = vector_matrix_mul(forward, rotation_y);
         io->camera->position = vector_add(io->camera->position, forward);
     }
-
+    if(io_is_key_down(io, SDL_SCANCODE_D)) {
+         Vector* forward = vector_scale(io->camera->direction, speed);
+        Matrix* rotation_y = matrix_create_rotation_matrix_y(-(M_PI / 2));  
+        forward = vector_matrix_mul(forward, rotation_y);
+        io->camera->position = vector_add(io->camera->position, forward);     
+    }
+    if(io_is_key_down(io, SDL_SCANCODE_W)) {
+         Vector* forward = vector_scale(io->camera->direction, speed);
+        io->camera->position = vector_add(io->camera->position, forward);
+    }
     if(io_is_key_down(io, SDL_SCANCODE_S)) {
+         Vector* forward = vector_scale(io->camera->direction, speed);
         io->camera->position = vector_sub(forward, io->camera->position);
     }
 
-
-    
-
-    if(io_is_key_down(io, SDL_SCANCODE_UP)) {
-        io->camera->position->y += 1; 
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_DOWN)) {
-        io->camera->position->y -= 1; 
-    }
-
-    if(io_is_key_down(io, SDL_SCANCODE_RIGHT)) {
-        io->camera->position->x += 1;
-    }
-
     if(io_is_key_down(io, SDL_SCANCODE_LEFT)) {
-        io->camera->position->x -= 1; 
+        io->camera->fYaw -= 0.05;
     }
-
-    if(io_is_key_down(io, SDL_SCANCODE_I)) {
-        io->camera->position->z += 1;
+    if(io_is_key_down(io, SDL_SCANCODE_RIGHT)) {
+        io->camera->fYaw += 0.05;
     }
-
-    if(io_is_key_down(io, SDL_SCANCODE_O)) {
-        io->camera->position->z -= 1; 
+    if(io_is_key_down(io, SDL_SCANCODE_UP)) {
+        io->camera->pitch -= 0.05;
     }
-
-    if(io_is_key_down(io, SDL_SCANCODE_R)) {
-        *io->camera = *camera_init(vector_create(0,0,0));
+    if(io_is_key_down(io, SDL_SCANCODE_DOWN)) {
+        io->camera->pitch += 0.05;
     }
-
-    
 
 
     

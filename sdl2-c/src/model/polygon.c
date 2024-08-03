@@ -2,25 +2,15 @@
 #include "global.h"
 #include "matrix.h"
 #include "vector.h"
+#include "wall.h"
 #include "../integration/display.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define CLIP_FAR_Z 1000.0f
-#define CLIP_NEAR_Z 1.0f
-#define OBJECT_CULL_Z_MODE   0
-#define OBJECT_CULL_XYZ_MODE 1
-#define INVERSE_ASPECT_RATIO 1
-
-#define RESET_POLY_LIST 0
-
-#define CLIP_Z_MODE 0
-#define CLIP_XYZ_MODE 1
-
 Vector light_source = {-0.913913, 0.389759, -0.113369};
-float  ambient_light = 6;
+float  ambient_light;
 
 facet  world_poly_storage[MAX_POLYS_PER_FRAME];
 facet* world_polys[MAX_POLYS_PER_FRAME];
@@ -1485,7 +1475,7 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
           b2y;          // the change of z with respect to y on the right edge
 
     int temp_x,         // used during sorting as temps
-        temp_y,
+        //temp_y,
         temp_z,
         xs_clip,        // used by clipping
         xe_clip,
@@ -1497,7 +1487,6 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
     float z_middle,       // the z value of the middle between the left and right
         bx;             // the change of z with respect to x
 
-    unsigned char *dest_addr;   // current image destination
 
     // test order of x1 and x2, note y1 == y2
 
@@ -1816,3 +1805,171 @@ void draw_triangle_3D_z(int x1, int y1, int z1,
         }
     }
 }
+
+void draw_triangle_2d_gouraud(int x1, int y1, int x2, int y2, int x3, int y3, int color, int intensity_1, int intensity_2, int intensity_3, uint32_t *pixelmap) {
+    // this function draws a Gouraud shaded triangle but does not perform an clipping 
+    // and is very slow
+
+    int x,y,            // looping variables
+        x_index,        // integer texture coordinates
+        y_index,
+        bottom_1,       // distance from top to middle of triangle on y axis
+        bottom_2;       // distance from middle to bottom triangle on y axis
+    
+    float dx_right,     // the dx/dy ratio of the right edge of line
+          dx_left,      // the dx/dy ratio of the left edge of line
+          xs,xe,        // the starting and ending points of the edges
+          height_left,  // the heights of the triangle
+          height_right;
+
+    float intensity_right,  // the intensity of the right edge of the triangle
+          intensity_left,   // the intensity of the left edge of the triangle
+          intensity_mid,    // the average between the right and left
+          delta_y21, delta_y31, delta_y32; // the y delta's
+
+    // compute height of sub triangles
+    height_left = y2 - y1;
+    height_right = y3 - y1;
+
+    // compute distances from starting y vertex
+    if(y2 > y3)
+    {
+        bottom_1 = y3;
+        bottom_2 = y2;
+    }
+    else
+    {
+        bottom_1 = y2;
+        bottom_2 = y3;
+    }
+
+    // compute edge deltas
+    dx_left = (float) (x2 - x1) / height_left;
+    dx_right = (float) (x3 - x1) / height_right;
+
+    // set starting points
+    xs = (float) x1;
+    xe = (float) x1 + (float) 0.5;
+
+    // compute shading constants
+    delta_y21 = (float) 1 / (float) (y2 - y1);
+    delta_y31 = (float) 1 / (float) (y3 - y1);
+    delta_y32 = (float) 1 / (float) (y3 - y2);
+
+    for(y = y1; y <= bottom_1; y++)
+    {
+        // compute left and right edge intensities as a function of y
+        intensity_left = delta_y21 * (float)((y2 - y) * intensity_1 + (y - y1) * intensity_2);
+        intensity_right = delta_y31 * (float)((y3 - y) * intensity_1 + (y - y1) * intensity_3);
+        
+        // draw line
+        for(x = (int) xs; x <= (int) xe; x++)
+        {
+            // compute x axis intensity interpolant
+            intensity_mid = ((xe - x) * intensity_left + (x - xs) * intensity_right) / (xe - xs);
+
+            // Mask to extract each color channel
+            int alpha =  color & 0xFF000000,
+                blue  = (color & 0x00FF0000) >> 16,
+                green = (color & 0x0000FF00) >> 8,
+                red   =  color & 0x000000FF;
+
+            // Calculate the sum of the RGB values
+            int sum = red + green + blue;
+
+            // Avoid division by zero
+            if (sum == 0) {
+                sum = 1;
+            }
+
+            // value of new color based on intensity 0-255.
+            int value = 4 * intensity_mid;
+
+            // Compute the new color channels based on the ratio
+            float percentage_red   = (float) red / sum,
+                percentage_green = (float) green / sum,
+                percentage_blue  = (float) blue / sum;
+
+            red = percentage_red * value;
+            green = percentage_green * value;
+            blue = percentage_blue * value;
+
+            // Combine the channels back into a single integer
+            int new_color = alpha | (blue << 16) | (green << 8) | red;
+
+            display_draw_pixel(pixelmap, x, y, new_color);
+
+        } // end for x
+
+        xs += dx_left;
+        xe += dx_right;
+
+    } // end for 
+
+
+    // now recompute slope of shorter edge to make it complete triangle
+    if(y3 > y2)
+    {
+        // recompute left edge slope
+        dx_left = (float)(x3 - x2) / (float)(y3 - y2);
+    }
+    else 
+    {
+        // y2 > y3, recompute right edge slope
+        dx_right = (float) (x2 - x3) / (float) (y2 - y3);
+    }
+
+    // draw remainder of triangle
+    for(y--; y <= bottom_2; y++)
+    {
+        // compute left and right edge of intensities as a function of y
+        intensity_left = (float)((y3 - y) * intensity_2 + (y - y2) * intensity_3) / (float)(y3 - y2);
+        intensity_right = delta_y31 * (float) (y3 - y) * intensity_1 + (y - y2) * intensity_3;
+
+        // draw line
+        for(x = (int) xs; x <= (int) xe; x++)
+        {
+            // compute x axis intensity interpolant
+            intensity_mid = ((xe - x)*intensity_left + (x - xs)*intensity_right) / (xe - xs);
+
+             // Mask to extract each color channel
+            int alpha =  color & 0xFF000000,
+                blue  = (color & 0x00FF0000) >> 16,
+                green = (color & 0x0000FF00) >> 8,
+                red   =  color & 0x000000FF;
+
+            // Calculate the sum of the RGB values
+            int sum = red + green + blue;
+
+            // Avoid division by zero
+            if (sum == 0) {
+                sum = 1;
+            }
+
+            // value of new color based on intensity 0-255.
+            int value = 4 * intensity_mid;
+
+            // Compute the new color channels based on the ratio
+            float percentage_red   = (float) red / sum,
+                percentage_green = (float) green / sum,
+                percentage_blue  = (float) blue / sum;
+
+            red = percentage_red * value;
+            green = percentage_green * value;
+            blue = percentage_blue * value;
+
+            // Combine the channels back into a single integer
+            int new_color = alpha | (blue << 16) | (green << 8) | red;
+
+            display_draw_pixel(pixelmap, x, y, new_color);
+
+        }
+
+        xs += dx_left;
+        xe += dx_right;
+    }
+
+}
+
+
+

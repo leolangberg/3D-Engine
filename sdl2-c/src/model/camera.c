@@ -33,6 +33,7 @@ void camera_update(Camera* camera) {
     //constant camera vectors.
     camera->up = vector_create(0,1,0);
     Matrix* rotation_y = matrix_create_rotation_matrix_y(camera->fYaw);
+    Matrix* rotation_x = matrix_create_rotation_matrix_x(camera->pitch);
 
     // calculate pointAt matrix and find inverse lookAt.
     camera->pointAt = matrix_point_at(camera->position, vector_create(0, 0, 1), camera->up);
@@ -40,8 +41,10 @@ void camera_update(Camera* camera) {
 
     // apply rotation onto lookAt matrix.
     camera->direction = vector_matrix_mul(vector_create(0,0,1), rotation_y);
+    camera->direction = vector_matrix_mul(camera->direction, rotation_x);
     camera->direction->x = -camera->direction->x;
     camera->lookAt = matrix_mul(camera->lookAt, rotation_y);
+    camera->lookAt = matrix_mul(camera->lookAt, rotation_x);
     
     
     // camera_plane perpendicular to direction
