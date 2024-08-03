@@ -1,24 +1,12 @@
 #include "polygon.h"
 #include "global.h"
-#include "matrix.h"
-#include "vector.h"
-#include "wall.h"
+#include "math/matrix.h"
+#include "math/vector.h"
 #include "../integration/display.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-Vector light_source = {-0.913913, 0.389759, -0.113369};
-float  ambient_light;
-
-facet  world_poly_storage[MAX_POLYS_PER_FRAME];
-facet* world_polys[MAX_POLYS_PER_FRAME];
-int num_polys_frame;
-
-int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT]; // does not require 2 separate 64k byte arrays because its 2024.
-unsigned int z_buffer_size = ALL_PIXELS;
-
 
 
 
@@ -1448,7 +1436,7 @@ void fill_z_buffer(int value) {
 
         } // end asm
     */
-    for(int i = 0; i < z_buffer_size; i++)
+    for(int i = 0; i < ALL_PIXELS; i++)
     {
         z_buffer[i] = value;
     }

@@ -1,9 +1,8 @@
 #ifndef POLYGON_H
 #define POLYGON_H
 
-#include "vector.h"
-#include "matrix.h"
-#include "wall.h"
+#include "math/vector.h"
+#include "math/matrix.h"
 #include "global.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -14,20 +13,6 @@
 #define MAX_POLYS_PER_OBJECT 6
 
 #define MAX_POLYS_PER_FRAME 128
-
-
-#define FLAT_SHADING 1
-
-#define SHADE_GREY 31           // hex value = 1F
-#define SHADE_GREEN 111         // hex value = 6F
-#define SHADE_BLUE 159          // hex value = 9F
-#define SHADE_RED 47            // hex value = 2F
-#define SHADE_YELLOW 79         // hex value = 4F
-#define SHADE_BROWN 223         // hex value = DF
-#define SHADE_LIGHT_BROWN 207   // hex value = CF
-#define SHADE_PURPLE 175        // hex value = AF
-#define SHADE_CYAN 127          // hex value = 7F
-#define SHADE_LAVENDER 191      // hex value = BF
 
 
 
@@ -72,6 +57,15 @@ typedef struct {
     int state;
     Vector world_pos;
 }Object;
+
+extern Vector light_source;
+extern float  ambient_light;
+extern int num_polys_frame;
+
+facet  world_poly_storage[MAX_POLYS_PER_FRAME];
+facet* world_polys[MAX_POLYS_PER_FRAME];
+
+int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT]; // does not require 2 separate 64k byte arrays because its 2024.
 
 /**
 * Draws Triangle on pixel screen.
@@ -142,48 +136,62 @@ void object_view_transformation(Object* object, Matrix* view_inverse);
 */
 int object_culling(Object* object, Matrix* view_inverse, int mode);
 
+/**
+* This fnuction clip an object in camera coordiantes against the 3D viewing
+* volume. The function has 2 mode of operation. In CLIP_Z_MODE the 
+* function performs only a simple z extend clip with the near and far clipping
+* planes. In CLIP_XYZ_MODE the function performs a full 3D clip.
+*/
 void clip_object_3D(Object* object, int mode);
 
+/**
+* This function is used to generate the final plygon list that will be
+* rendered. Object by object the list is built up.
+* To reset list call (NULL, RESET_POLY_LIST)
+*/
 void generate_poly_list(Object* object, int mode);
 
+/**
+* Calls qsort() function to perform sort of polygon list based on
+* descending z-value.
+*/
 void sort_polygon_list(void);
 
+/*
+* Draws all polygons in list. Similar to object_draw_solid.
+*/
 void draw_poly_list(uint32_t *pixelmap);
 
-
-
-int create_z_buffer(unsigned int height);
-
-void delete_z_buffer(void);
-
+/**
+* Fills z_buffer with constant value that needs to be 
+* much larger than any normal z value.
+*/
 void fill_z_buffer(int value);
 
+/**
+* Draws Triangles by determining float top or bottom triangle. 
+* Same as draw_triangle_2D() except that this function incorporates 
+* the Z-buffer.
+*/
 void draw_triangle_3D_z(int x1, int y1, int z1,
                         int x2, int y2, int z2,
                         int x3, int y3, int z3,
                         int color, uint32_t* pixelmap);
 
+/**
+* Same as draw_poly_list() except that this function also
+* incorporates the Z-buffer.
+*/
 void draw_poly_list_z(uint32_t* pixelmap);
 
+/**
+* Extra shading function that breaks the triangle down using interpolation
+* into even smaller areas. These areas then use a shading from 0-63 steps to 
+* Achieve a finer look.
+* DOES NOT QUITE WORK AS OF NOW.
+*/
 void draw_triangle_2d_gouraud(int x1, int y1, int x2, int y2, int x3, int y3, int color, int intensity_1, int intensity_2, int intensity_3, uint32_t *pixelmap);
 
-int color_intensity_conversion(int color, int intensity);
-
-
-
-void build_bsp_tree(Wall *root);
-
-void bsp_traverse(Wall *root, Vector* viewpoint);
-
-void bsp_world_to_camera(Wall *root, Matrix* lookAt);
-
-void bsp_translate(Wall *root, int x_trans, int y_trans, int z_trans);
-
-void bsp_shade(Wall *root);
-
-void bsp_delete(Wall *root);
-
-Wall* create_wall_linked_list();
 
 
 #endif

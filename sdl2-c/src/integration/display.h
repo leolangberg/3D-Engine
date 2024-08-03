@@ -2,7 +2,7 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include "../model/vector.h"
+#include "../model/math/vector.h"
 #include "../model/camera.h"
 #include "../model/global.h"
 #include <stdint.h>

@@ -1,7 +1,6 @@
 #include "io.h"
 #include "SDL2/SDL_keyboard.h"
 #include "SDL2/SDL_scancode.h"
-#include "../model/matrix.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdbool.h>

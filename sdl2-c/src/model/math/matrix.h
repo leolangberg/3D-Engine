@@ -75,54 +75,12 @@ Matrix* matrix_create_rotation_matrix_y(float angle_radian);
 Matrix* matrix_create_rotation_matrix_x(float angle_radian);
 Matrix* matrix_create_rotation_matrix_z(float angle_radian);
 
-/**
-* Rotates matrix with angle given.
-* 
-* Calls matrix_mul and then dereferences *result, which
-* is then placed on the dereference *m1, thus changing
-* the inside variable that m1 points to.
-* @param m1 Matrix to be rotated.
-* @param point_of_rotation vector on which the rotation will be performed.
-* @param angle_radian angle of rotation (radians).
-*/
-void matrix_rotate(Matrix *m, const Vector* point_of_rotation, float angle_radian);
-
-/**
-* Rotates matrix along z axis only.
-*/
-void matrix_rotate_z(Matrix* m1, const Vector* point_of_rotation, float angle_radian);
-
-/**
-* Rotates matrix along y axis only.
-*/
-void matrix_rotate_y(Matrix* m1, const Vector* point_of_rotation, float angle_radian);
-
-/**
-* Rotates matrix along x axis only.
-*/
-void matrix_rotate_x(Matrix* m1, const Vector* point_of_rotation, float angle_radian);
 
 /**
 * Compares 2 Matrices to see if they are equal.
 * @return bool true or false.
 */
 bool matrix_equals(const Matrix *m1, const Matrix *m2);
-
-/**
-* Gauss Jordan Elimination Algorithm.
-*
-* Performs row and column operations until Matrix A equals Identity Matrix (I).
-* Once this occurs then Matrix B has been properly transformed to correct x,y,z values.
-*/
-void matrix_gauss_jordan_elimination(Matrix* A, Matrix* B);
-
-/**
-* Algorithm for finding the Matrix Inverse.
-* 
-* Uses Gauss-Jordan Elimination then retrieves the new Inverse 
-* to the Matrix A.
-*/
-Matrix* matrix_inverse(Matrix* A);
 
 /**
 * Collects specific column and returns it as a vector.
@@ -151,12 +109,11 @@ Matrix* vector_as_matrix(const Vector* v1);
 */
 Matrix* vectors_as_matrix(const Vector** array_of_vectors, int array_length);
 
-Vector* vector_matrix_mul(const Vector* v1, const Matrix* m1);
-
 /**
-* Rotates vector via matrix rotation (Z-rotation or "2D rotation").
+* Performs matrix multiplication with vector that is temporarily restructured
+* as a matrix.
 */
-Vector* vector_rotate(const Vector* v, const Vector* point_of_rotation, float angle_rad);
+Vector* vector_matrix_mul(const Vector* v1, const Matrix* m1);
 
 /**
 * Scales all matrix values by said scale_factor.
@@ -168,14 +125,6 @@ Vector* vector_rotate(const Vector* v, const Vector* point_of_rotation, float an
 * @param scale_factor scaling multiplier.
 */
 void matrix_scale(Matrix* m1, Vector* center, float scale_factor);
-
-/**
-* Applies perspective transformation on matrix.
-* First performs matrix multiplication which incorporates (d) distance into
-* matrix. 
-* Each row x,y,z values are then divided by their equivalent d/z value.
-*/
-void matrix_perspective_transformation(Matrix* m1, float distance);
 
 /**
 * Copies given matrix.

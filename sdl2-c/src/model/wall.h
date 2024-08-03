@@ -1,7 +1,7 @@
 #ifndef WALL_H
 #define WALL_H
 
-#include "vector.h"
+#include "math/vector.h"
 
 typedef struct Wall{
     int id;                 // used for debugging

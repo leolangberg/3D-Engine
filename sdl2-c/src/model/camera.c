@@ -1,10 +1,10 @@
 #include "camera.h"
-#include "matrix.h"
-#include "vector.h"
 #include <stdlib.h>
 
 
-
+/**
+* Initializes camera.
+*/
 Camera* camera_init(Vector* position) {
     Camera* camera = malloc(sizeof(Camera));
 
@@ -17,6 +17,7 @@ Camera* camera_init(Vector* position) {
     camera->lookAt = matrix_quick_lookat_inverse(camera->pointAt);
 
     camera->fYaw = 0.0f;
+    camera->pitch = 0.0f;
 
     return camera;
 }
@@ -25,7 +26,8 @@ Camera* camera_init(Vector* position) {
 /**
 * Update of Camera logistics.
 *
-* 1. fYaw rotation.
+* To determine pointAt matrix 2 constant vectors (0,1,0) & (0,0,1) is used.
+* Only after this is the rotation applied to the world lookAt matrix.
 *
 */
 void camera_update(Camera* camera) {
@@ -43,6 +45,7 @@ void camera_update(Camera* camera) {
     camera->direction = vector_matrix_mul(vector_create(0,0,1), rotation_y);
     camera->direction = vector_matrix_mul(camera->direction, rotation_x);
     camera->direction->x = -camera->direction->x;
+    camera->direction->y = -camera->direction->y;
     camera->lookAt = matrix_mul(camera->lookAt, rotation_y);
     camera->lookAt = matrix_mul(camera->lookAt, rotation_x);
     

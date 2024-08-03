@@ -168,25 +168,6 @@ Vector* vector_set_zero(Vector* v1) {
 }
 
 
-/**
-* Determines (2D) intersection of 2 lines (4 points) using Bezier parameters (s, t).
-* @return vector with intersection coordinates. 
-*/
-Vector* vector_intersect_2d(const Vector* v0, const Vector* v1, const Vector* w0, const Vector* w1) {
-  
-    Vector* s1 = vector_create((v1->x - v0->x), (v1->y - v0->y), 0);
-    Vector* s2 = vector_create((w1->x - w0->x), (w1->y - w0->y), 0);
-
-    float s, t;
-    s = ((-s1->y) * (v0->x - w0->x) + s1->x * (v0->y - w0->y)) / ((-s2->x) * s1->y + s1->x * s2->y);
-    t = (s2->x * (v0->x - w0->y) - s2->y * (v0->x - w0->x)) / ((-s2->x) * s1->y + s1->x * s2->y);
-
-    // check that lines actually intersect.
-    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
-       return vector_create((v0->x + (t * s1->x)), (v0->y + (t * s1->y)), 0);   
-    } 
-    return vector_create(NAN,NAN,NAN);
-}
 
 void intersect_lines(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float *xi, float *yi) {
     // this function computes the intersection fo the sent lines

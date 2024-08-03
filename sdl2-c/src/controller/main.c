@@ -4,49 +4,17 @@
 #include "../model/camera.h"
 #include "../model/global.h"
 #include "../model/wall.h"
-#include "SDL2/SDL_rect.h"
-#include "SDL2/SDL_render.h"
 #include <SDL2/SDL.h>
 #include <math.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-
-
-
-/*
-* Defined constants for main class.
-*/
-
-#define ASSERT(_e, ...) if (!(_e)) { fprintf(stderr, __VA_ARGS__); exit(1); }
-
-#define FPS 60
-#define DELAY_TIME 1000.0f / FPS
-
-#define BLUE   0xFFFF0000
-#define GREEN 0xFF00FF00
-#define RED  0xFF0000FF
-
-#define MAPWIDTH 24
-#define MAPHEIGHT 24
-#define TEXTURE_WIDTH 64
-#define TEXTURE_HEIGHT 64
-
-
-
-
-
-
-
 
 
 /**
-* State structure (taken from 'Programming a first person shooter from scratch like it's 1995' by 'jdh').
+* State structure.
 * Holds a very simple SDL component structure for window, texture and renderer.
 * Also contains pixelmap of entire screen (creating a first quadrant screen).
-* Vector* camera_pos->z = camera distance.
 */
 static struct {
     SDL_Window *window;
@@ -61,6 +29,9 @@ static struct {
 
 
 Object test_objects[16];
+Vector light_source = {-0.913913, 0.389759, -0.113369};
+float ambient_light = 6;
+int num_polys_frame = 0;
 
 
 void init() {
@@ -155,20 +126,20 @@ int main( int arc, char* args[] ) {
         io_handle_events(state.io);
         camera_update(state.camera);
         
-        generate_poly_list(NULL, 0);
+        generate_poly_list(NULL, RESET_POLY_LIST);
 
         for(int index = 0; index < 16; index++)
         {
-            if(!object_culling(&test_objects[index], state.camera->lookAt, 1))
+            if(!object_culling(&test_objects[index], state.camera->lookAt, OBJECT_CULL_XYZ_MODE))
             {
                 // convert to world coordinates.
                 object_local_to_world_transformation(&test_objects[index]);
                 // shade and remove backfaces, ignore the backface part for now
-                remove_backfaces_and_shade(&test_objects[index], state.camera->position, 1);
+                remove_backfaces_and_shade(&test_objects[index], state.camera->position, FLAT_SHADING);
                 // convert world coordinates to camera coordinates.
                 object_view_transformation(&test_objects[index], state.camera->lookAt);
                 //clip the object polygons against viewing volume
-                clip_object_3D(&test_objects[index], 0);
+                clip_object_3D(&test_objects[index], CLIP_Z_MODE);
                 // generate poly list
                 generate_poly_list(&test_objects[index], 1);
                 //

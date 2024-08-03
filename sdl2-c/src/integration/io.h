@@ -4,8 +4,9 @@
 
 #include <SDL2/SDL.h>
 #include <stdbool.h>
-#include "../model/vector.h"
+#include "../model/math/vector.h"
 #include "../model/camera.h"
+#include "../model/math/matrix.h"
 #include "SDL2/SDL_keyboard.h"
 #include "../model/polygon.h"
 
