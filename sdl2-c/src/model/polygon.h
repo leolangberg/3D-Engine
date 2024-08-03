@@ -58,6 +58,9 @@ typedef struct {
     Vector world_pos;
 }Object;
 
+
+
+
 extern Vector light_source;
 extern float  ambient_light;
 extern int num_polys_frame;

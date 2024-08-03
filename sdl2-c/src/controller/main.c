@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 
 /**
@@ -27,7 +28,9 @@ static struct {
 
 }state;
 
-
+/*
+* Externally declared variables:
+*/
 Object test_objects[16];
 Vector light_source = {-0.913913, 0.389759, -0.113369};
 float ambient_light = 6;
@@ -42,7 +45,7 @@ void init() {
       
     for(int index = 0; index < 16; index++)
     {
-        PLG_Load_Object(&test_objects[index], "/Users/leolangberg/Desktop/LinearAlgebra/sdl2-c/src/assets/cube.plg", 1);
+        PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
     }
  
 
