@@ -1,0 +1,10 @@
+#id num_vertices num_polys
+triangle 3 1
+#vertices
+-20 0 0
+20 0 0
+-20 20 0
+
+# polygon list (color) (num_vertices) (vertex) (vertex) (vertex) 
+#COUNTERCLOCKWISE ORDER (ALL SURFACE NORMALS NEED TO POINT OUTWARDS)
+0xFFFF00 3 0 1 2 

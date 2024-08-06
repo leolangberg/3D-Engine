@@ -333,259 +333,6 @@ float compute_object_radius(Object* object) {
 }
 
 /**
-* Reads line of PLG file and converts file text into string. 
-*/
-char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
-    // this function get a line from a PLG file and strips comments
-    // just pretend it's a black box!
-
-    char buffer[80];
-
-    int length,     // length of line read
-        index=0,    // looping variables
-        index_2=0,
-        parsed=0;   // has the current input line been parsed
-
-    // get the next line of input, make sure there is something on the line
-
-    while(1)
-    {
-        // get the line
-        if(!fgets(buffer, max_length, fp)) {
-            return(NULL);
-        }
-
-        // get length of line
-        length = strlen(buffer);
-
-        // kill the carriage return
-        buffer[length-1] = 0;
-
-        // reset index
-        index = 0;
-
-        //eat leading white space
-        while(buffer[index]==' ') {
-            index++;
-        }
-
-        // read the line into buffer, if "#" arrives in data stream then disregard
-        // rest of line.
-        parsed = 0;
-        index_2 = 0;
-
-        while(!parsed)
-        {
-            if(buffer[index]!='#' && buffer[index]!=';')
-            {
-                // insert character into output string
-                string[index_2] = buffer[index];
-
-                // test if this is a null terminator
-                if(string[index_2] == 0) {
-                    parsed = 1;
-                }
-
-                // move to next character
-                index++;
-                index_2++;
-            }
-            else
-            {
-                // insert a null termination since this is the end of the 
-                // string for all intense purposes
-                string[index_2] = 0;
-                parsed = 1;
-        
-            }
-        }
-
-        // make sure we got a string and not a blank line
-        if(strlen(string)) {
-            return(string);
-        }
-    }
-}
-
-/**
-* Loads PLG files by reading from the text file and declaring variables accordingly.
-* Also has the option to scale the object as it is being constructed.
-*/
-int PLG_Load_Object(Object* object, char *filename, float scale) {
-    // this function loads an object off disk and allows it to be scaled.
-
-    FILE *fp; // disk file
-    static int id_number = 0; // used to set object id's
-    char buffer[80],          // holds input string
-         object_name[32],     // name of 3D object
-         *token;              // current parsing token
-
-    unsigned int total_vertices,    // total vertices in object
-                 total_polys,       // total polygons per object
-                 num_vertices,      // number of vertices on a polygon
-                 logical_color,     // the final color of polygon
-                 index,             // looping variables
-                 index_2,
-                 vertex_num,        // vertex number
-                 vertex_0,
-                 vertex_1,
-                 vertex_2;
-    
-    float x,y,z;                    // a single vertex
-
-    Vector u,v,normal;              // working vectors
-
-    // open the disk file
-    if((fp=fopen(filename, "r")) == NULL) {
-        printf("Could not open file %s\n", filename);
-        return 0;
-    }
-
-    // first we are looking for the header line that has the object name and
-    // the number of vertices and polygons
-
-    if(!PLG_Get_Line(buffer, 80, fp)) {
-        printf("Error with PLG file %s (stop 1)", filename);
-        fclose(fp);
-        return 0;
-    }
-
-    // extract object name and number of vertices and polygons
-    sscanf(buffer, "%s %d %d",object_name, &total_vertices, &total_polys);
-
-    // set proper fields in object
-    object->num_vertices = total_vertices;
-    object->num_polys = total_polys;
-    object->state = 1;
-
-    //printf("total_vertices: %d, total_polys: %d\n", total_vertices, total_polys);
-    
-    object->world_pos.x = 0;
-    object->world_pos.y = 0;
-    object->world_pos.z = 0;
-
-    // set id number, maybe later also add the name of object in the structure?
-    object->id = id_number++;
-
-
-    // based on number of vertices, read vertex list into object
-    for(index = 0; index < total_vertices; index++)
-    {
-        // read in vertex
-        if(!PLG_Get_Line(buffer, 80, fp)) {
-            printf("Error with PLG file %s (stop 2)", filename);
-            fclose(fp);
-            return 0;
-        }
-
-        sscanf(buffer,"%f %f %f", &x, &y, &z);
-
-        // insert vertex into object
-        object->vertices_local[index].x = x * scale;
-        object->vertices_local[index].y = y * scale;
-        object->vertices_local[index].z = z * scale;
-
-        //printf("x: %.2f, y: %.2f, z: %.2f\n", x, y , z);
-
-    }
-
-    // now read in polygon list
-    for(index = 0; index < total_polys; index++)
-    {
-        // read in color and number of vertices for next polygon
-        if(!PLG_Get_Line(buffer, 80, fp)) {
-            printf("Error with PLG file %s (stop 3)", filename);
-            fclose(fp);
-            return 0;
-        }
-
-        // initialize token getter and get first token which is color descriptor
-        if(!(token = strtok(buffer, " "))) {
-            printf("Error with PLG file %s (stop 4)", filename);
-            fclose(fp);
-            return 0;
-        }
-
-        // test if number is hexadecimal
-
-        if(token[0] == '0' && (token[1] == 'x' || token[1] == 'X')) {
-            sscanf(&token[2], "%x", &logical_color);
-            // end if hex color specifier
-        }
-        else {
-            logical_color = atoi(token);
-            // end if decimal
-        }
-
-        
-        // read number of vertices in polygon
-        if(!(token = strtok(NULL, " "))) {
-            printf("Error with PLG file %s (stop 5)", filename);
-            fclose(fp);
-            return 0;
-        }
-
-        if((num_vertices = atoi(token)) <= 0) {
-            printf("Error with PLG file %s (stop 6)", filename);
-            fclose(fp);
-            return 0;
-        }
-
-        // set fields in polygon structure
-
-        object->polys[index].num_points = num_vertices;
-        object->polys[index].color      = logical_color;
-        object->polys[index].two_sided  = 0;
-        object->polys[index].visible    = 1;
-        object->polys[index].clipped    = 0;
-        object->polys[index].active     = 1;
-
-        //printf("num_points: %d\n", num_vertices);
-
-        // now read in polygon vertice list
-        for(index_2 = 0; index_2 < num_vertices; index_2++)
-        {
-            // read in next vertex number
-            if(!(token = strtok(NULL, " ")))
-            {
-                printf("Error with PLG file %s (stop 7)", filename);
-                fclose(fp);
-                return 0;
-            }
-
-            vertex_num = atoi(token);
-            //printf("vertex_num: %d\n", vertex_num);
-
-            // insert vertex number into polygon
-            object->polys[index].vertex_list[index_2] = vertex_num;
-        }
-
-        // compute length of the two co-planar edges of the polygon, since they
-        // will be used in the computation of the dot-product later
-
-        vertex_0 = object->polys[index].vertex_list[0];
-        vertex_1 = object->polys[index].vertex_list[1];
-        vertex_2 = object->polys[index].vertex_list[2];
-
-        // the vector u = v0->v1
-        u = *vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_1]);
-        // the vector v = v0->v2
-        v = *vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_2]);
-
-        normal = *vector_cross_product(&v, &u);
-        object->polys[index].normal = normal;
-    }
-
-    // close file
-    fclose(fp);
-
-    // compute object radius
-    object->radius = compute_object_radius(object);
-
-    return 1;
-}
-
-/**
 * Divides each RGB color value into 16 steps between 0 to 255 (16 each).
 * Each color is then applied the new intensity value multiplied by the ratio of each color.
 */
@@ -652,74 +399,151 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
 
     for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
     {
-        // compute the two vectors on polygon that have the same initial points
-        vertex_0 = object->polys[curr_poly].vertex_list[0];
-        vertex_1 = object->polys[curr_poly].vertex_list[1];
-        vertex_2 = object->polys[curr_poly].vertex_list[2];
 
-        // the vector u = v0->v1
-        // the vector v = v0->v2
-        u = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
-        v = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
-
-        // compute the normal to polygon v x u
-        normal = *vector_cross_product(&v, &u);
-
-        // compute the line of sight vector, since all coordinates are world all
-        // object vertices are already relative to (0,0,0) thus
-
-        sight.x = view_point->x - object->vertices_world[vertex_0].x;
-        sight.y = view_point->y - object->vertices_world[vertex_0].y;
-        sight.z = view_point->z - object->vertices_world[vertex_0].z;
-
-        // compute the dot product between line of sight vector and normal to surface
-        dp = vector_dot_product(&normal, &sight);
-
-        // set the clip flagged appropriately
-        if(dp>0)
+        if(object->polys[curr_poly].two_sided == ONE_SIDED)
         {
-            // set visibility
-            object->polys[curr_poly].visible = 1;
 
-            // compute light intensity if needed
-            if(FLAT_SHADING)
+            // compute the two vectors on polygon that have the same initial points
+            vertex_0 = object->polys[curr_poly].vertex_list[0];
+            vertex_1 = object->polys[curr_poly].vertex_list[1];
+            vertex_2 = object->polys[curr_poly].vertex_list[2];
+
+            // the vector u = v0->v1
+            // the vector v = v0->v2
+            u = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
+            v = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
+
+            // compute the normal to polygon v x u
+            normal = *vector_cross_product(&v, &u);
+
+            // compute the line of sight vector, since all coordinates are world all
+            // object vertices are already relative to (0,0,0) thus
+
+            sight.x = view_point->x - object->vertices_world[vertex_0].x;
+            sight.y = view_point->y - object->vertices_world[vertex_0].y;
+            sight.z = view_point->z - object->vertices_world[vertex_0].z;
+
+            // compute the dot product between line of sight vector and normal to surface
+            dp = vector_dot_product(&normal, &sight);
+
+            // set the clip flagged appropriately
+            if(dp>0)
             {
-                // compute the dot product between light source vector
-                // and normal vector to surface
-                dp  = vector_dot_product(&normal, &light_source);
+                // set visibility
+                object->polys[curr_poly].visible = 1;
 
-                // test if light ray is reflecting off surface
-                if(dp>0)
+                // compute light intensity if needed
+                if(mode == FLAT_SHADING)
                 {
-                    // now cos 0 = (u*v) / |u||v| 
-                    intensity = ambient_light + ((15*dp) / vector_length(&object->polys[curr_poly].normal));
+                    // compute the dot product between light source vector
+                    // and normal vector to surface
+                    dp  = vector_dot_product(&normal, &light_source);
 
-                    // test if intensity has overflowed
-                    if(intensity > 15) {
-                        intensity = 15;
-                    }
+                    // test if light ray is reflecting off surface
+                    if(dp>0)
+                    {
+                        // now cos 0 = (u*v) / |u||v| 
+                        intensity = ambient_light + ((15*dp) / vector_length(&object->polys[curr_poly].normal));
 
-                    // intensity now varies from 0-1, 0 being black or grazing and 1 being
-                    // totally illuminated. use the value to index into color table
+                        // test if intensity has overflowed
+                        if(intensity > 15) {
+                            intensity = 15;
+                        }
 
-                    object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
-            
-                } // end if light is reflecting off surface
+                        // intensity now varies from 0-1, 0 being black or grazing and 1 being
+                        // totally illuminated. use the value to index into color table
+
+                        object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
+                
+                    } // end if light is reflecting off surface
+                    else
+                    {
+                        object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
+                    } // end if use flat shading
+                }
                 else
-                {
-                    object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
-                } // end if use flat shading
-            }
+                {   
+                    // assueme constant shading and simply assign color to shade
+                    object->polys[curr_poly].shade = object->polys[curr_poly].color;
+                } // end else constant shading 
+            } // end if face is visible
             else
-            {   
-                // assueme constant shading and simply assign color to shade
-                object->polys[curr_poly].shade = object->polys[curr_poly].color;
-            } // end else constant shading 
-        } // end if face is visible
+            {
+                object->polys[curr_poly].visible = 0; // set invisible flag
+            } 
+        }
         else
         {
-            object->polys[curr_poly].visible = 0; // set invisible flag
-        } 
+            // else polygon is always visible i.e. two sided, set visibility flag
+            // so negine renders it
+            object->polys[curr_poly].visible = 1;
+
+            // perform shading calculation
+            // compute the two vectors on polygon that have the same initial points
+            vertex_0 = object->polys[curr_poly].vertex_list[0];
+            vertex_1 = object->polys[curr_poly].vertex_list[1];
+            vertex_2 = object->polys[curr_poly].vertex_list[2];
+
+            // the vector u = v0->v1
+            // the vector v = v0->v2
+            u = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
+            v = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
+
+            // compute the normal to polygon v x u
+            normal = *vector_cross_product(&v, &u);
+
+            // compute the line of sight vector, since all coordinates are world all
+            // object vertices are already relative to (0,0,0) thus
+
+            sight.x = view_point->x - object->vertices_world[vertex_0].x;
+            sight.y = view_point->y - object->vertices_world[vertex_0].y;
+            sight.z = view_point->z - object->vertices_world[vertex_0].z;
+
+            // compute the dot product between line of sight vector and normal to surface
+            dp = vector_dot_product(&normal, &sight);
+
+            // set the clip flagged appropriately
+            if(dp>0)
+            {
+                // set visibility
+                object->polys[curr_poly].visible = 1;
+
+                // compute light intensity if needed
+                if(mode == FLAT_SHADING)
+                {
+                    // compute the dot product between light source vector
+                    // and normal vector to surface
+                    dp  = vector_dot_product(&normal, &light_source);
+
+                    // test if light ray is reflecting off surface
+                    if(dp>0)
+                    {
+                        // now cos 0 = (u*v) / |u||v| 
+                        intensity = ambient_light + ((15*dp) / vector_length(&object->polys[curr_poly].normal));
+
+                        // test if intensity has overflowed
+                        if(intensity > 15) {
+                            intensity = 15;
+                        }
+
+                        // intensity now varies from 0-1, 0 being black or grazing and 1 being
+                        // totally illuminated. use the value to index into color table
+
+                        object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
+                
+                    } // end if light is reflecting off surface
+                    else
+                    {
+                        object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
+                    } // end if use flat shading
+                }
+                else
+                {   
+                    // assueme constant shading and simply assign color to shade
+                    object->polys[curr_poly].shade = object->polys[curr_poly].color;
+                } // end else constant shading 
+            } // end if face is visible
+        } // end else two sided
     } // end for curr_poly
 }
 
@@ -778,15 +602,13 @@ void draw_object_solid(Object* object, uint32_t* pixelmap) {
             z4 = z3;
         }
 
-        #if 0
             // perform z clipping test
 
-            if((z1<clip_near_z && z2 < clip_near_z && z3 < clip_near_z && z4 < clip_near_z) || 
-            (z1 > clip_far_z && z2 > clip_far_z && z3 > clip_far_z && z4 > clip_far_z))
+            if((z1<CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) || 
+            (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z && z4 > CLIP_FAR_Z))
             {
                 continue;
             }
-        #endif
         
         // extract points of polygon
         x1 = object->vertices_camera[vertex_1].x;
@@ -798,7 +620,6 @@ void draw_object_solid(Object* object, uint32_t* pixelmap) {
         x3 = object->vertices_camera[vertex_3].x;
         y3 = object->vertices_camera[vertex_3].y;
 
-        
 
         x1 = (((float) WINDOW_WIDTH / 2)  + x1 * VIEWING_DISTANCE / z1);
         y1 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y1 * VIEWING_DISTANCE / z1);
@@ -808,8 +629,6 @@ void draw_object_solid(Object* object, uint32_t* pixelmap) {
 
         x3 = (((float) WINDOW_WIDTH / 2)  + x3 * VIEWING_DISTANCE / z3);
         y3 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y3 * VIEWING_DISTANCE / z3);
-
-        
 
         //shade instead of color according to Lamotte.
         triangle_draw_2D((int) x1, (int) y1, (int) x2, (int) y2, (int) x3, (int) y3, object->polys[curr_poly].shade, pixelmap);
@@ -998,7 +817,7 @@ void clip_object_3D(Object* object, int mode) {
         {
             // reset clipped variable
             // otherwise once clipped object will always be clipped.
-            object->polys[curr_poly].clipped = 0;
+            //object->polys[curr_poly].clipped = 0;
 
             // extract z components
             z1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].z;
@@ -1050,20 +869,15 @@ void clip_object_3D(Object* object, int mode) {
             if(object->polys[curr_poly].num_points == 4)
             {
                 // extract 4th vertex
-                x4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].x;
-                y4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].y;
-                z4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].z;
 
-                // do clipping tests
-
-                // perform near and far clipping first
-                if( (z1 < CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) ||
-                (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z && z4 > CLIP_FAR_Z))
+                // do clipping
+                if(!((z1 > CLIP_NEAR_Z || z2 > CLIP_NEAR_Z || z3 > CLIP_NEAR_Z || z4 > CLIP_NEAR_Z) &&
+                     (z1 < CLIP_FAR_Z || z2 < CLIP_FAR_Z || z3 < CLIP_FAR_Z || z4 < CLIP_FAR_Z)))
                 {
-                    // set clipped flag
                     object->polys[curr_poly].clipped = 1;
                     continue;
                 }
+                
 
                 // pre-compute x comparison ranges
                 x1_compare = (((float) WINDOW_WIDTH / 2) * z1) / VIEWING_DISTANCE;
@@ -1077,6 +891,7 @@ void clip_object_3D(Object* object, int mode) {
                 {
                     // set clipped flag
                     object->polys[curr_poly].clipped = 1;
+                    continue;
                 }
 
                 //pre-compute y comparison ranges
@@ -1092,11 +907,12 @@ void clip_object_3D(Object* object, int mode) {
                     // set clipped flag
                     object->polys[curr_poly].clipped = 1;
                     continue;
-                }
+                }         
             } // end if quad
             else
             {
                 // must be triangle, perform clipping tests on only 3 vertices
+                object->polys[curr_poly].clipped = 0;
 
                 // do clipping tests
 
@@ -1120,6 +936,7 @@ void clip_object_3D(Object* object, int mode) {
                 {
                     // set clipped flag
                     object->polys[curr_poly].clipped = 1;
+                    continue;
                 }
 
                 //pre-compute y comparison ranges
@@ -1192,6 +1009,306 @@ void generate_poly_list(Object* object, int mode) {
 
         } // end if poly visible
     } // end for curr_poly
+}
+
+
+/**
+* Function handles case for when polygon is only partly inside view frustum
+* with the other part being in behind camera (z < CLIP_NEAR_Z). If this happens then
+* approach is to determine intersection of polygon with the camera plane and clip the 
+* polygon to these new points.
+* If polygon is a quad then simply cut it up into 2 triangles and redo the process. Similar
+* thing can happen if triangle only has 1 point outside of frame. 
+*/
+void clip_polygon_near_z() {
+
+    int curr_poly;     // polygon index
+
+    float x1, y1, z1,    // working variables used to hold vertices.
+          x2, y2, z2,
+          x3, y3, z3,
+          x4, y4, z4,
+          xi, zi,       // intersection points.
+          xj, zj,
+          k1, k2;       // slope variables.
+
+    float *temp_x1, *temp_y1, *temp_z1,
+          *temp_x2, *temp_y2, *temp_z2,
+          *temp_x3, *temp_y3, *temp_z3;
+
+    // iterate through each polygon in render list
+    for(curr_poly = 0; curr_poly < num_polys_frame; curr_poly++)
+    {
+        int num_verts_outside=0;
+        int vertex_ccodes[3] = {0,0,0};
+
+
+        // polygon is skipped.
+        if(world_polys[curr_poly]->clipped || (!world_polys[curr_poly]->visible)) {
+            continue;
+        }
+
+          // polygon is quad, which means that we will now cut this into 2 new triangles, where
+        // one of the polygon takes the place of the old one and the other is pushed.
+        if(world_polys[curr_poly]->num_points == 4)
+        {
+            // if all points on quad is inside then simply continue.
+            if((world_polys[curr_poly]->vertex_list[0].z > CLIP_NEAR_Z) &&
+               (world_polys[curr_poly]->vertex_list[1].z > CLIP_NEAR_Z) &&
+               (world_polys[curr_poly]->vertex_list[2].z > CLIP_NEAR_Z) &&
+               (world_polys[curr_poly]->vertex_list[3].z > CLIP_NEAR_Z))
+            {
+                continue;
+            }
+
+            facet polygon;
+            polygon.num_points  = 3;
+            polygon.color       = world_polys[curr_poly]->color;
+            polygon.shade       = world_polys[curr_poly]->shade;
+            polygon.two_sided   = world_polys[curr_poly]->two_sided;
+            polygon.visible     = world_polys[curr_poly]->visible;
+            polygon.clipped     = world_polys[curr_poly]->clipped;
+            polygon.active      = world_polys[curr_poly]->active;
+            polygon.normal      = world_polys[curr_poly]->normal;
+            
+            // make the old polygon be vert 0,1,2 by simply reducing
+            // number of points
+            world_polys[curr_poly]->num_points = 3; 
+             
+            // new one will be 0,2,3;
+            polygon.vertex_list[0].x = world_polys[curr_poly]->vertex_list[0].x;
+            polygon.vertex_list[0].y = world_polys[curr_poly]->vertex_list[0].y;
+            polygon.vertex_list[0].z = world_polys[curr_poly]->vertex_list[0].z;
+
+            polygon.vertex_list[1].x = world_polys[curr_poly]->vertex_list[2].x;
+            polygon.vertex_list[1].y = world_polys[curr_poly]->vertex_list[2].y;
+            polygon.vertex_list[1].z = world_polys[curr_poly]->vertex_list[2].z;
+
+            polygon.vertex_list[2].x = world_polys[curr_poly]->vertex_list[3].x;
+            polygon.vertex_list[2].y = world_polys[curr_poly]->vertex_list[3].y;
+            polygon.vertex_list[2].z = world_polys[curr_poly]->vertex_list[3].z;
+
+            // add new polygon to pipeline
+            world_poly_storage[num_polys_frame] = polygon;
+            // assing pointer to it
+            world_polys[num_polys_frame] = &world_poly_storage[num_polys_frame];
+            // increment number of polys
+            num_polys_frame++;
+            
+        } // end if polygon is quad.
+
+        // if polygon was quad then current polygon will now be reduced and can be
+        // passed into triangle for z-clipping.
+
+        // polygon is triangle.
+        if(world_polys[curr_poly]->num_points == 3)
+        {
+            // extract vertices for each polygon.
+            x1 = world_polys[curr_poly]->vertex_list[0].x;
+            y1 = world_polys[curr_poly]->vertex_list[0].y;
+            z1 = world_polys[curr_poly]->vertex_list[0].z;
+
+            x2 = world_polys[curr_poly]->vertex_list[1].x;
+            y2 = world_polys[curr_poly]->vertex_list[1].y;
+            z2 = world_polys[curr_poly]->vertex_list[1].z;
+
+            x3 = world_polys[curr_poly]->vertex_list[2].x;
+            y3 = world_polys[curr_poly]->vertex_list[2].y;
+            z3 = world_polys[curr_poly]->vertex_list[2].z;
+            
+
+            // determine which points lie inside or outside of z_near
+
+            // if z1 is behind near_z then set vertex code to 1
+            if(z1 < CLIP_NEAR_Z) {
+                vertex_ccodes[0] = 1;
+                num_verts_outside++;
+            }
+
+            if(z2 < CLIP_NEAR_Z) {
+                vertex_ccodes[1] = 1;
+                num_verts_outside++;
+            }
+
+            if(z3 < CLIP_NEAR_Z) {
+                vertex_ccodes[2] = 1;
+                num_verts_outside++;
+            }
+
+            // case 1: only a single vertice is inside view frustum meaning that
+            //         the 2 points outside can just be clipped to z_near;
+            if(num_verts_outside == 2) 
+            {
+                world_polys[curr_poly]->shade = 0xFFFF0000;
+                printf("num_verts_outside == 2\n");
+                printf("triangle disect\n");
+                vector_print(&world_polys[curr_poly]->vertex_list[0]);
+                vector_print(&world_polys[curr_poly]->vertex_list[1]);
+                vector_print(&world_polys[curr_poly]->vertex_list[2]);
+
+                // find out which of the points is the one still inside (0 == inside)
+                // temp variables automatically point back to working variables.
+                // Thus, you would not have to directly know which one is which, since
+                // it knows that itself.
+                if(vertex_ccodes[0] == 0) {
+                    temp_x1 = &x1; temp_y1 = &y1; temp_z1 = &z1;
+                    temp_x2 = &x2; temp_y2 = &y2; temp_z2 = &z2;
+                    temp_x3 = &x3; temp_y3 = &y3; temp_z3 = &z3;
+                }
+                if(vertex_ccodes[1] == 0) {
+                    temp_x1 = &x2; temp_y1 = &y2; temp_z1 = &z2;
+                    temp_x2 = &x3; temp_y2 = &y3; temp_z2 = &z3;
+                    temp_x3 = &x1; temp_y3 = &y1; temp_z3 = &z1;
+                }
+                if(vertex_ccodes[2] == 0) {
+                    temp_x1 = &x3; temp_y1 = &y3; temp_z1 = &z3;
+                    temp_x2 = &x1; temp_y2 = &y1; temp_z2 = &z1;
+                    temp_x3 = &x2; temp_y3 = &y2; temp_z3 = &z2;
+                }
+
+                // determine slopes for both lines being intersected, so that
+                // the proper y value can be determined afterwards.
+                k1 = (*temp_y2 - *temp_y1) / (*temp_x2 - *temp_x1);
+                k2 = (*temp_y3 - *temp_y1) / (*temp_x3 - *temp_x1);
+
+
+                // find the intersection points for each vertice.
+                // the line is always drawn from point inside to point outside, therefore the point
+                // that is subject to change is the same as the end point of the line.
+                intersect_lines(*temp_x1, *temp_z1, *temp_x2, *temp_z2, 0, CLIP_NEAR_Z, 1, CLIP_NEAR_Z, temp_x2, temp_z2);
+                intersect_lines(*temp_x1, *temp_z1, *temp_x3, *temp_z3, 0, CLIP_NEAR_Z, 1, CLIP_NEAR_Z, temp_x3, temp_z3);
+
+                // determine new y-values with old slopes.
+                *temp_y2 = k1 * (*temp_x2 - *temp_x1) + *temp_y1;
+                *temp_y3 = k2 * (*temp_x3 - *temp_x1) + *temp_y1;
+
+                // replace each old vertice with the new one.
+                // all new relevant vertice information has already been replaced
+                // in the old working variables. 
+                // 2 of the edges should thus have z = CLIP_NEAR_Z.
+                world_polys[curr_poly]->vertex_list[0].x = x1;
+                world_polys[curr_poly]->vertex_list[0].y = y1;
+                world_polys[curr_poly]->vertex_list[0].z = z1;
+
+                world_polys[curr_poly]->vertex_list[1].x = x2;
+                world_polys[curr_poly]->vertex_list[1].y = y2;
+                world_polys[curr_poly]->vertex_list[1].z = z2;
+
+                world_polys[curr_poly]->vertex_list[2].x = x3;
+                world_polys[curr_poly]->vertex_list[2].y = y3;
+                world_polys[curr_poly]->vertex_list[2].z = z3;
+
+            }
+            // case 2: there are 2 points that lie inside the view frustum and
+            //         only a single point inside. This case needs to construct a
+            //         completely new extra polygon.
+            else
+            if (num_verts_outside == 1) 
+            {
+                world_polys[curr_poly]->shade = 0xFF0000FF;
+                printf("num_verts_outside == 1\n");
+                printf("triangle disect\n");
+                vector_print(&world_polys[curr_poly]->vertex_list[0]);
+                vector_print(&world_polys[curr_poly]->vertex_list[1]);
+                vector_print(&world_polys[curr_poly]->vertex_list[2]);
+                // find out which of the points is the one still inside (1 == outside)
+                // temp variables automatically point back to working variables.
+                // Thus, you would not have to directly know which one is which, since
+                // it knows that itself.
+                if(vertex_ccodes[0] == 1) {
+                    temp_x1 = &x1; temp_y1 = &y1; temp_z1 = &z1;
+                    temp_x2 = &x2; temp_y2 = &y2; temp_z2 = &z2;
+                    temp_x3 = &x3; temp_y2 = &y3; temp_z3 = &z3;
+                }
+                if(vertex_ccodes[1] == 1) {
+                    temp_x1 = &x2; temp_y1 = &y2; temp_z1 = &z2;
+                    temp_x2 = &x3; temp_y2 = &y3; temp_z2 = &z3;
+                    temp_x3 = &x1; temp_y3 = &y1; temp_z3 = &z1;
+                }
+                if(vertex_ccodes[2] == 1) {
+                    temp_x1 = &x3; temp_y1 = &y3; temp_z1 = &z3;
+                    temp_x2 = &x1; temp_y2 = &y1; temp_z2 = &z1;
+                    temp_x3 = &x2; temp_y3 = &y2; temp_z3 = &z2;
+                }
+
+                // determine slopes for both lines being intersected, so that
+                // the proper y value can be determined afterwards.
+                k1 = (*temp_y2 - *temp_y1) / (*temp_x2 - *temp_x1);
+                k2 = (*temp_y3 - *temp_y1) / (*temp_x3 - *temp_x1);
+
+                // find the intersection points for each vertice.
+                // the line is always drawn from point inside to point outside, therefore the point
+                // that is subject to change is the same as the end point of the line.
+                // temp_1 is always the one vertice that is OUTSIDE.
+                intersect_lines(*temp_x1, *temp_z1, *temp_x2, *temp_z2, 0, CLIP_NEAR_Z, 1, CLIP_NEAR_Z, &xi, &zi);
+                intersect_lines(*temp_x1, *temp_z1, *temp_x3, *temp_z3, 0, CLIP_NEAR_Z, 1, CLIP_NEAR_Z, &xj, &zj);
+                
+                // A new polygon can thus be constructed together with the 2 new intersections
+                // along with the old vertices still inside (temp_2 and temp_3).
+                facet polygon;
+                polygon.num_points  = world_polys[curr_poly]->num_points;
+                polygon.color       = world_polys[curr_poly]->color;
+                polygon.shade       = world_polys[curr_poly]->shade;
+                polygon.two_sided   = world_polys[curr_poly]->two_sided;
+                polygon.visible     = world_polys[curr_poly]->visible;
+                polygon.clipped     = world_polys[curr_poly]->clipped;
+                polygon.active      = world_polys[curr_poly]->active;
+                polygon.normal      = world_polys[curr_poly]->normal;
+
+                // replace each old vertice with the new one.
+                // all new relevant vertice information has already been replaced
+                // in the old working variables. 
+                // 2 of the edges should thus have z = CLIP_NEAR_Z.
+
+                // Order of declaration is important as temp_y2 and temp_y3 will change.
+                world_polys[curr_poly]->vertex_list[0].x = *temp_x2;
+                world_polys[curr_poly]->vertex_list[0].y = *temp_y2;
+                world_polys[curr_poly]->vertex_list[0].z = *temp_z2;
+
+                world_polys[curr_poly]->vertex_list[1].x = *temp_x3;
+                world_polys[curr_poly]->vertex_list[1].y = *temp_y3;
+                world_polys[curr_poly]->vertex_list[1].z = *temp_z3;
+
+                // old vertice that existed before
+                polygon.vertex_list[0].x = *temp_x3;
+                polygon.vertex_list[0].y = *temp_y3;
+                polygon.vertex_list[0].z = *temp_z3;
+
+                // determine new y-values with old slopes.
+                *temp_y2 = k1 * (*temp_x2 - *temp_x1) + *temp_y1;
+                *temp_y3 = k2 * (*temp_x3 - *temp_x1) + *temp_y1;
+
+                // needs to be temp_2 intersection since new triangle uses
+                // temp_3, i, j. (Old uses: temp_2, temp_3, i)
+                world_polys[curr_poly]->vertex_list[2].x = xi;
+                world_polys[curr_poly]->vertex_list[2].y = *temp_y2;
+                world_polys[curr_poly]->vertex_list[2].z = zi;
+
+                // temp_2 was used to calculate xi,zi.
+                polygon.vertex_list[1].x = xi;
+                polygon.vertex_list[1].y = *temp_y2;
+                polygon.vertex_list[1].z = zi;
+
+                // temp_3 was used to calculate xj, zj;
+                polygon.vertex_list[2].x = xj;
+                polygon.vertex_list[2].y = *temp_y3;
+                polygon.vertex_list[2].z = zj;
+
+
+                // add new polygon to pipeline
+                world_poly_storage[num_polys_frame] = polygon;
+                // assing pointer to it
+                world_polys[num_polys_frame] = &world_poly_storage[num_polys_frame];
+                // increment number of polys
+                num_polys_frame++;
+
+            }  
+            else {
+                // either all vertices inside or all vertices outside.
+                continue;
+            } // end if vertices outside
+        } // end if number of vertices == 3
+    }
 }
 
 int polygon_compare(facet** arg1, facet** arg2) {
@@ -1369,15 +1486,12 @@ void draw_poly_list_z(uint32_t* pixelmap) {
             z4 = z3;
         }
 
-        #if 0
-                // perform z clipping test
-
-                if((z1<clip_near_z && z2 < clip_near_z && z3 < clip_near_z && z4 < clip_near_z) || 
-                (z1 > clip_far_z && z2 > clip_far_z && z3 > clip_far_z && z4 > clip_far_z))
-                {
-                    continue;
-                }
-        #endif
+        // perform z clipping test
+        if((z1<CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) || 
+        (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z && z4 > CLIP_FAR_Z))
+        {
+            continue;
+        }
 
         x1 = world_polys[curr_poly]->vertex_list[0].x;
         y1 = world_polys[curr_poly]->vertex_list[0].y;
@@ -1396,9 +1510,7 @@ void draw_poly_list_z(uint32_t* pixelmap) {
         y2 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y2 * VIEWING_DISTANCE / z2);
 
         x3 = (((float) WINDOW_WIDTH / 2)  + x3 * VIEWING_DISTANCE / z3);
-        y3 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y3 * VIEWING_DISTANCE / z3);
-
-            
+        y3 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y3 * VIEWING_DISTANCE / z3);  
 
         //shade instead of color according to Lamotte.
         draw_triangle_3D_z((int) x1, (int) y1, (int) z1, (int) x2, (int) y2, (int) z2,(int) x3, (int) y3, (int) z3, world_polys[curr_poly]->shade, pixelmap);
@@ -1412,7 +1524,7 @@ void draw_poly_list_z(uint32_t* pixelmap) {
 
             x4 = (((float) WINDOW_WIDTH / 2)  + x4 * VIEWING_DISTANCE / z4);
             y4 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y4 * VIEWING_DISTANCE / z4);
-
+        
             draw_triangle_3D_z((int) x1, (int) y1, (int) z1,(int) x3, (int) y3, (int) z3,(int) x4, (int) y4, (int) z4, world_polys[curr_poly]->shade, pixelmap);
         } // end if quad
     } // end for curr_poly
@@ -1630,6 +1742,7 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
     } // end if no x clipping needed
     else
     {
+
         // clip x axis with slower version
 
         // draw the triangle
@@ -1642,6 +1755,8 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
             // compute horizontal z interpolant
             z_middle = z_left;
             bx = (z_right - z_left) / (1 + xe - xs);
+
+            //printf("z_left: %f, z_right: %f, z_middle: %f\n", z_left, z_right, z_middle);
 
             // adjust starting point and ending point
             xs += dx_left;
@@ -1786,7 +1901,6 @@ void draw_triangle_3D_z(int x1, int y1, int z1,
         {
             draw_tb_triangle_3d_z(x1,y1,z1,new_x,y2,new_z,x2,y2,z2,color,pixelmap);
         }
-
         if(y3 >= poly_clip_min_y && y1 < poly_clip_max_y)
         {
             draw_tb_triangle_3d_z(x2,y2,z2,new_x,y2,new_z,x3,y3,z3,color,pixelmap);

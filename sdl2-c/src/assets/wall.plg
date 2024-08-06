@@ -1,0 +1,14 @@
+#id num_vertices num_polys
+wall 4 1
+#vertices
+-20 0 10
+20 0 10
+20 10 10
+-20 10 10
+
+
+# polygon list (color) (num_vertices) (vertex) (vertex) (vertex) 
+#COUNTERCLOCKWISE ORDER (ALL SURFACE NORMALS NEED TO POINT OUTWARDS)
+0xFF0AA0FF 4 0 1 2 3 
+
+

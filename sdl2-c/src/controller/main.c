@@ -1,15 +1,20 @@
+#include "../integration/plgreader.h"
 #include "../integration/display.h"
 #include "../integration/io.h"
 #include "../model/polygon.h"
 #include "../model/camera.h"
 #include "../model/global.h"
-#include "../model/wall.h"
+#include "../model/sector.h"
 #include <SDL2/SDL.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+
+#define MAX_AMOUNT_OF_OBJECTS 24
+
 
 
 /**
@@ -31,10 +36,15 @@ static struct {
 /*
 * Externally declared variables:
 */
-Object test_objects[16];
+Object object;
+Object test_objects[MAX_AMOUNT_OF_OBJECTS];
 Vector light_source = {-0.913913, 0.389759, -0.113369};
 float ambient_light = 6;
 int num_polys_frame = 0;
+
+int amount_of_objecs = 0;
+
+Sector* sectors;
 
 
 void init() {
@@ -43,9 +53,22 @@ void init() {
     state.camera = camera_init(vector_create(0,0,0));
     state.io = io_create(&state.quit, state.camera);
       
+    /*
+    sectors = malloc(sizeof(Sector));
+    PLG_Load_Sector(sectors, "src/assets/sectortest.plg");
+
+    for(int i = 0; i < sectors->num_walls; i++)
+    {
+        test_objects[amount_of_objecs] = sectors->wall_list[i];
+        amount_of_objecs++;
+    }
+
+    */
+
+    
     for(int index = 0; index < 16; index++)
     {
-        PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
+        PLG_Load_Object(&test_objects[index], "src/assets/wall.plg", 1);
     }
  
 
@@ -54,8 +77,8 @@ void init() {
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
+        test_objects[index].polys[0].two_sided = 1;
     }
-
 
 }
 
@@ -128,9 +151,9 @@ int main( int arc, char* args[] ) {
         fill_z_buffer(16000);
         io_handle_events(state.io);
         camera_update(state.camera);
-        
-        generate_poly_list(NULL, RESET_POLY_LIST);
 
+        generate_poly_list(NULL, RESET_POLY_LIST);
+        
         for(int index = 0; index < 16; index++)
         {
             if(!object_culling(&test_objects[index], state.camera->lookAt, OBJECT_CULL_XYZ_MODE))
@@ -138,20 +161,20 @@ int main( int arc, char* args[] ) {
                 // convert to world coordinates.
                 object_local_to_world_transformation(&test_objects[index]);
                 // shade and remove backfaces, ignore the backface part for now
-                remove_backfaces_and_shade(&test_objects[index], state.camera->position, FLAT_SHADING);
+                remove_backfaces_and_shade(&test_objects[index], state.camera->position, CONSTANT_SHADING);
                 // convert world coordinates to camera coordinates.
                 object_view_transformation(&test_objects[index], state.camera->lookAt);
                 //clip the object polygons against viewing volume
-                clip_object_3D(&test_objects[index], CLIP_Z_MODE);
+                clip_object_3D(&test_objects[index], CLIP_XYZ_MODE);
                 // generate poly list
                 generate_poly_list(&test_objects[index], 1);
-                //
+                // clip near z possible polygons.
+                clip_polygon_near_z();
             }
         }
 
-        //sort_polygon_list();
-
         draw_poly_list_z(state.pixels);
+
         
         
         SDL_UpdateTexture(state.texture, NULL, state.pixels, WINDOW_WIDTH * 4);

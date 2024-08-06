@@ -80,12 +80,6 @@ int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT]; // does not require 2 separate 64k b
 void triangle_draw_2D(int x1, int y1, int x2, int y2, int x3, int y3, int color, uint32_t* pixelmap);
 
 /**
-* Loads PLG files by reading from the text file and declaring variables accordingly.
-* Also has the option to scale the object as it is being constructed.
-*/
-int PLG_Load_Object(Object* object, char *filename, float scale);
-
-/**
 * Removes backfaces meaning that the method determines if polygons are invisible or clipped from
 * the current viewpoint, and thus only draws relevant polygons. 
 * Relevant polygons of object are also colored and shaded correctly based on direction 
@@ -139,6 +133,7 @@ void object_view_transformation(Object* object, Matrix* view_inverse);
 */
 int object_culling(Object* object, Matrix* view_inverse, int mode);
 
+void clip_polygon_near_z();
 /**
 * This fnuction clip an object in camera coordiantes against the 3D viewing
 * volume. The function has 2 mode of operation. In CLIP_Z_MODE the 
