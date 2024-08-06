@@ -42,9 +42,7 @@ Vector light_source = {-0.913913, 0.389759, -0.113369};
 float ambient_light = 6;
 int num_polys_frame = 0;
 
-int amount_of_objecs = 0;
-
-Sector* sectors;
+int amount_of_objects = 16;
 
 
 void init() {
@@ -53,31 +51,20 @@ void init() {
     state.camera = camera_init(vector_create(0,0,0));
     state.io = io_create(&state.quit, state.camera);
       
-    /*
-    sectors = malloc(sizeof(Sector));
-    PLG_Load_Sector(sectors, "src/assets/sectortest.plg");
-
-    for(int i = 0; i < sectors->num_walls; i++)
-    {
-        test_objects[amount_of_objecs] = sectors->wall_list[i];
-        amount_of_objecs++;
-    }
-
-    */
-
     
-    for(int index = 0; index < 16; index++)
+    
+    for(int index = 0; index < amount_of_objects; index++)
     {
-        PLG_Load_Object(&test_objects[index], "src/assets/wall.plg", 1);
+        PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
     }
  
 
-    for(int index=0; index<16; index++)
+    for(int index=0; index<amount_of_objects; index++)
     {
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
-        test_objects[index].polys[0].two_sided = 1;
+        //test_objects[index].polys[0].two_sided = 1;
     }
 
 }
@@ -154,7 +141,7 @@ int main( int arc, char* args[] ) {
 
         generate_poly_list(NULL, RESET_POLY_LIST);
         
-        for(int index = 0; index < 16; index++)
+        for(int index = 0; index < amount_of_objects; index++)
         {
             if(!object_culling(&test_objects[index], state.camera->lookAt, OBJECT_CULL_XYZ_MODE))
             {
@@ -169,7 +156,7 @@ int main( int arc, char* args[] ) {
                 // generate poly list
                 generate_poly_list(&test_objects[index], 1);
                 // clip near z possible polygons.
-                clip_polygon_near_z();
+                clip_polygon();
             }
         }
 

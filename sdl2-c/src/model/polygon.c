@@ -562,8 +562,7 @@ void draw_object_solid(Object* object, uint32_t* pixelmap) {
         vertex_1,           // vertex index numbers
         vertex_2,
         vertex_3,
-        vertex_4,
-        is_quad=0;          // qadrilateral flag
+        vertex_4;
 
     float x1,y1,z1,         // working variables
           x2,y2,z2,
@@ -573,6 +572,7 @@ void draw_object_solid(Object* object, uint32_t* pixelmap) {
     // compute position of object in world
     for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
     {
+        int is_quad = 0;
         // if polygon is not visible or clipped then continue to next loop iteration
         if(object->polys[curr_poly].visible == 0 || object->polys[curr_poly].clipped) {
             continue;
@@ -869,6 +869,9 @@ void clip_object_3D(Object* object, int mode) {
             if(object->polys[curr_poly].num_points == 4)
             {
                 // extract 4th vertex
+                x4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].x;
+                y4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].y;
+                z4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].z;
 
                 // do clipping
                 if(!((z1 > CLIP_NEAR_Z || z2 > CLIP_NEAR_Z || z3 > CLIP_NEAR_Z || z4 > CLIP_NEAR_Z) &&
@@ -1020,35 +1023,31 @@ void generate_poly_list(Object* object, int mode) {
 * If polygon is a quad then simply cut it up into 2 triangles and redo the process. Similar
 * thing can happen if triangle only has 1 point outside of frame. 
 */
-void clip_polygon_near_z() {
+void clip_polygon() {
 
     int curr_poly;     // polygon index
-
-    float x1, y1, z1,    // working variables used to hold vertices.
-          x2, y2, z2,
-          x3, y3, z3,
-          x4, y4, z4,
-          xi, zi,       // intersection points.
-          xj, zj,
-          k1, k2;       // slope variables.
-
-    float *temp_x1, *temp_y1, *temp_z1,
-          *temp_x2, *temp_y2, *temp_z2,
-          *temp_x3, *temp_y3, *temp_z3;
 
     // iterate through each polygon in render list
     for(curr_poly = 0; curr_poly < num_polys_frame; curr_poly++)
     {
-        int num_verts_outside=0;
-        int vertex_ccodes[3] = {0,0,0};
+        int num_verts_outside=0;        // counts how many points are outside.
+        int vertex_ccodes[3] = {0,0,0}; // holds codes of which points that are outside.
 
+        int v0, v1, v2; // indexes
+
+        float t1, t2,
+              xi, yi,
+              x01i, y01i,
+              x02i, y02i;
+
+        Vector v, u;
 
         // polygon is skipped.
         if(world_polys[curr_poly]->clipped || (!world_polys[curr_poly]->visible)) {
             continue;
         }
 
-          // polygon is quad, which means that we will now cut this into 2 new triangles, where
+        // polygon is quad, which means that we will now cut this into 2 new triangles, where
         // one of the polygon takes the place of the old one and the other is pushed.
         if(world_polys[curr_poly]->num_points == 4)
         {
@@ -1074,6 +1073,7 @@ void clip_polygon_near_z() {
             // make the old polygon be vert 0,1,2 by simply reducing
             // number of points
             world_polys[curr_poly]->num_points = 3; 
+            //world_polys[curr_poly]->shade = 0xFF0000FF;
              
             // new one will be 0,2,3;
             polygon.vertex_list[0].x = world_polys[curr_poly]->vertex_list[0].x;
@@ -1100,216 +1100,225 @@ void clip_polygon_near_z() {
         // if polygon was quad then current polygon will now be reduced and can be
         // passed into triangle for z-clipping.
 
+
         // polygon is triangle.
         if(world_polys[curr_poly]->num_points == 3)
         {
-            // extract vertices for each polygon.
-            x1 = world_polys[curr_poly]->vertex_list[0].x;
-            y1 = world_polys[curr_poly]->vertex_list[0].y;
-            z1 = world_polys[curr_poly]->vertex_list[0].z;
-
-            x2 = world_polys[curr_poly]->vertex_list[1].x;
-            y2 = world_polys[curr_poly]->vertex_list[1].y;
-            z2 = world_polys[curr_poly]->vertex_list[1].z;
-
-            x3 = world_polys[curr_poly]->vertex_list[2].x;
-            y3 = world_polys[curr_poly]->vertex_list[2].y;
-            z3 = world_polys[curr_poly]->vertex_list[2].z;
-            
-
             // determine which points lie inside or outside of z_near
 
             // if z1 is behind near_z then set vertex code to 1
-            if(z1 < CLIP_NEAR_Z) {
+            if(world_polys[curr_poly]->vertex_list[0].z < CLIP_NEAR_Z) {
                 vertex_ccodes[0] = 1;
                 num_verts_outside++;
             }
-
-            if(z2 < CLIP_NEAR_Z) {
+            // if z2 is behind near_z then set vertex code to 1
+            if(world_polys[curr_poly]->vertex_list[1].z < CLIP_NEAR_Z) {
                 vertex_ccodes[1] = 1;
                 num_verts_outside++;
             }
-
-            if(z3 < CLIP_NEAR_Z) {
+            // if z3 is behind near_z then set vertex code to 1
+            if(world_polys[curr_poly]->vertex_list[2].z < CLIP_NEAR_Z) {
                 vertex_ccodes[2] = 1;
                 num_verts_outside++;
             }
 
             // case 1: only a single vertice is inside view frustum meaning that
             //         the 2 points outside can just be clipped to z_near;
-            if(num_verts_outside == 2) 
+            if(num_verts_outside == 2)
             {
-                world_polys[curr_poly]->shade = 0xFFFF0000;
-                printf("num_verts_outside == 2\n");
-                printf("triangle disect\n");
-                vector_print(&world_polys[curr_poly]->vertex_list[0]);
-                vector_print(&world_polys[curr_poly]->vertex_list[1]);
-                vector_print(&world_polys[curr_poly]->vertex_list[2]);
 
                 // find out which of the points is the one still inside (0 == inside)
                 // temp variables automatically point back to working variables.
                 // Thus, you would not have to directly know which one is which, since
-                // it knows that itself.
-                if(vertex_ccodes[0] == 0) {
-                    temp_x1 = &x1; temp_y1 = &y1; temp_z1 = &z1;
-                    temp_x2 = &x2; temp_y2 = &y2; temp_z2 = &z2;
-                    temp_x3 = &x3; temp_y3 = &y3; temp_z3 = &z3;
+                // it knows that itself.  
+                if(vertex_ccodes[0] == 0)
+                {
+                    v0 = 0;
+                    v1 = 1;
+                    v2 = 2;
                 }
-                if(vertex_ccodes[1] == 0) {
-                    temp_x1 = &x2; temp_y1 = &y2; temp_z1 = &z2;
-                    temp_x2 = &x3; temp_y2 = &y3; temp_z2 = &z3;
-                    temp_x3 = &x1; temp_y3 = &y1; temp_z3 = &z1;
+                else
+                if(vertex_ccodes[1] == 0)
+                {
+                    v0 = 1;
+                    v1 = 2;
+                    v2 = 0;
                 }
-                if(vertex_ccodes[2] == 0) {
-                    temp_x1 = &x3; temp_y1 = &y3; temp_z1 = &z3;
-                    temp_x2 = &x1; temp_y2 = &y1; temp_z2 = &z1;
-                    temp_x3 = &x2; temp_y3 = &y2; temp_z3 = &z2;
-                }
+                else 
+                {
+                    v0 = 2;
+                    v1 = 0;
+                    v2 = 1;
+                };
 
-                // determine slopes for both lines being intersected, so that
-                // the proper y value can be determined afterwards.
-                k1 = (*temp_y2 - *temp_y1) / (*temp_x2 - *temp_x1);
-                k2 = (*temp_y3 - *temp_y1) / (*temp_x3 - *temp_x1);
+                // step 2: clip each edge
+                // basically we are going to generate
+                // the parametric line + = v0 + v01*t
+                // then solve for t when the z component 
+                // is equal to CLIP_NEAR_Z, then plug that
+                // back into to solve for x,y of the 3D line.
 
+                // clip ege v0->v1
+                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
 
-                // find the intersection points for each vertice.
-                // the line is always drawn from point inside to point outside, therefore the point
-                // that is subject to change is the same as the end point of the line.
-                intersect_lines(*temp_x1, *temp_z1, *temp_x2, *temp_z2, 0, CLIP_NEAR_Z, 1, CLIP_NEAR_Z, temp_x2, temp_z2);
-                intersect_lines(*temp_x1, *temp_z1, *temp_x3, *temp_z3, 0, CLIP_NEAR_Z, 1, CLIP_NEAR_Z, temp_x3, temp_z3);
+                // the intersection occurs when z = CLIP_NEAR_Z, so t:
+                t1 = ((CLIP_NEAR_Z - world_polys[curr_poly]->vertex_list[v0].z) / v.z);
 
-                // determine new y-values with old slopes.
-                *temp_y2 = k1 * (*temp_x2 - *temp_x1) + *temp_y1;
-                *temp_y3 = k2 * (*temp_x3 - *temp_x1) + *temp_y1;
+                // now plug back in and find x,y interseciton with the plane
+                xi = world_polys[curr_poly]->vertex_list[v0].x + v.x * t1;
+                yi = world_polys[curr_poly]->vertex_list[v0].y + v.y * t1;
 
-                // replace each old vertice with the new one.
-                // all new relevant vertice information has already been replaced
-                // in the old working variables. 
-                // 2 of the edges should thus have z = CLIP_NEAR_Z.
-                world_polys[curr_poly]->vertex_list[0].x = x1;
-                world_polys[curr_poly]->vertex_list[0].y = y1;
-                world_polys[curr_poly]->vertex_list[0].z = z1;
+                // now overwrite the vertex with new vertex
+                world_polys[curr_poly]->vertex_list[v1].x = xi;
+                world_polys[curr_poly]->vertex_list[v1].y = yi;
+                world_polys[curr_poly]->vertex_list[v1].z = CLIP_NEAR_Z;
 
-                world_polys[curr_poly]->vertex_list[1].x = x2;
-                world_polys[curr_poly]->vertex_list[1].y = y2;
-                world_polys[curr_poly]->vertex_list[1].z = z2;
+                // clip edge v0->v2
+                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
 
-                world_polys[curr_poly]->vertex_list[2].x = x3;
-                world_polys[curr_poly]->vertex_list[2].y = y3;
-                world_polys[curr_poly]->vertex_list[2].z = z3;
+                // the intersection occurs when z = CLIP_NEAR_Z, so t:
+                t2 = ((CLIP_NEAR_Z - world_polys[curr_poly]->vertex_list[v0].z) / v.z);
 
-            }
+                // now plug t back in and find x,y intersection with the plane
+                xi = world_polys[curr_poly]->vertex_list[v0].x + v.x * t2;
+                yi = world_polys[curr_poly]->vertex_list[v0].y + v.y * t2;
+
+                // now overwrite vertex with new vertex
+                world_polys[curr_poly]->vertex_list[v2].x = xi;
+                world_polys[curr_poly]->vertex_list[v2].y = yi;
+                world_polys[curr_poly]->vertex_list[v2].z = CLIP_NEAR_Z;
+
+                // re-compute normal
+                u = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
+                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
+                world_polys[curr_poly]->normal = *vector_cross_product(&u, &v);
+
+            } // end if 2 points outside
+            else 
             // case 2: there are 2 points that lie inside the view frustum and
             //         only a single point inside. This case needs to construct a
             //         completely new extra polygon.
-            else
-            if (num_verts_outside == 1) 
+            if(num_verts_outside == 1)
             {
-                world_polys[curr_poly]->shade = 0xFF0000FF;
-                printf("num_verts_outside == 1\n");
-                printf("triangle disect\n");
-                vector_print(&world_polys[curr_poly]->vertex_list[0]);
-                vector_print(&world_polys[curr_poly]->vertex_list[1]);
-                vector_print(&world_polys[curr_poly]->vertex_list[2]);
-                // find out which of the points is the one still inside (1 == outside)
-                // temp variables automatically point back to working variables.
-                // Thus, you would not have to directly know which one is which, since
-                // it knows that itself.
-                if(vertex_ccodes[0] == 1) {
-                    temp_x1 = &x1; temp_y1 = &y1; temp_z1 = &z1;
-                    temp_x2 = &x2; temp_y2 = &y2; temp_z2 = &z2;
-                    temp_x3 = &x3; temp_y2 = &y3; temp_z3 = &z3;
+                // step 0: copy the polygon.
+                facet temp_polygon;
+                temp_polygon.num_points = 3;
+                temp_polygon.color      = world_polys[curr_poly]->color;
+                temp_polygon.shade      = world_polys[curr_poly]->shade;
+                temp_polygon.two_sided  = world_polys[curr_poly]->two_sided;
+                temp_polygon.visible    = world_polys[curr_poly]->visible;
+                temp_polygon.clipped    = world_polys[curr_poly]->clipped;
+                temp_polygon.active     = world_polys[curr_poly]->active;
+
+                temp_polygon.vertex_list[0] = world_polys[curr_poly]->vertex_list[0];
+                temp_polygon.vertex_list[1] = world_polys[curr_poly]->vertex_list[1];
+                temp_polygon.vertex_list[2] = world_polys[curr_poly]->vertex_list[2];
+
+                // step 1: find vertex index for exterior vertex
+                // z1 is outside of view frustum
+                if(vertex_ccodes[0] == 1)
+                {
+                    v0 = 0; v1 = 1; v2 = 2;
                 }
-                if(vertex_ccodes[1] == 1) {
-                    temp_x1 = &x2; temp_y1 = &y2; temp_z1 = &z2;
-                    temp_x2 = &x3; temp_y2 = &y3; temp_z2 = &z3;
-                    temp_x3 = &x1; temp_y3 = &y1; temp_z3 = &z1;
+                else 
+                // z2 is outside of view frustum
+                if(vertex_ccodes[1] == 1)
+                {
+                    v0 = 1; v1 = 2; v2 = 0;
                 }
-                if(vertex_ccodes[2] == 1) {
-                    temp_x1 = &x3; temp_y1 = &y3; temp_z1 = &z3;
-                    temp_x2 = &x1; temp_y2 = &y1; temp_z2 = &z1;
-                    temp_x3 = &x2; temp_y3 = &y2; temp_z3 = &z2;
-                }
+                // z3 is outside of view frustum
+                else 
+                {
+                    v0 = 2; v1 = 0; v2 = 1;
+                };
 
-                // determine slopes for both lines being intersected, so that
-                // the proper y value can be determined afterwards.
-                k1 = (*temp_y2 - *temp_y1) / (*temp_x2 - *temp_x1);
-                k2 = (*temp_y3 - *temp_y1) / (*temp_x3 - *temp_x1);
+                // step 2: clip each edge
+                // basically we are going to generate the
+                // parametric line p = v0 + v01 * t
+                // then solve for t when the z component is equal to
+                // CLIP_NEAR_Z, then plug that 
+                // back into to to solve for x,y of the 3D line.
 
-                // find the intersection points for each vertice.
-                // the line is always drawn from point inside to point outside, therefore the point
-                // that is subject to change is the same as the end point of the line.
-                // temp_1 is always the one vertice that is OUTSIDE.
-                intersect_lines(*temp_x1, *temp_z1, *temp_x2, *temp_z2, 0, CLIP_NEAR_Z, 1, CLIP_NEAR_Z, &xi, &zi);
-                intersect_lines(*temp_x1, *temp_z1, *temp_x3, *temp_z3, 0, CLIP_NEAR_Z, 1, CLIP_NEAR_Z, &xj, &zj);
-                
-                // A new polygon can thus be constructed together with the 2 new intersections
-                // along with the old vertices still inside (temp_2 and temp_3).
-                facet polygon;
-                polygon.num_points  = world_polys[curr_poly]->num_points;
-                polygon.color       = world_polys[curr_poly]->color;
-                polygon.shade       = world_polys[curr_poly]->shade;
-                polygon.two_sided   = world_polys[curr_poly]->two_sided;
-                polygon.visible     = world_polys[curr_poly]->visible;
-                polygon.clipped     = world_polys[curr_poly]->clipped;
-                polygon.active      = world_polys[curr_poly]->active;
-                polygon.normal      = world_polys[curr_poly]->normal;
+                // clip edge v0->v1
+                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
 
-                // replace each old vertice with the new one.
-                // all new relevant vertice information has already been replaced
-                // in the old working variables. 
-                // 2 of the edges should thus have z = CLIP_NEAR_Z.
+                // the intersection occurs when z = CLIP_NEAR_Z, so t:
+                t1 = ((CLIP_NEAR_Z - world_polys[curr_poly]->vertex_list[v0].z) / v.z);
 
-                // Order of declaration is important as temp_y2 and temp_y3 will change.
-                world_polys[curr_poly]->vertex_list[0].x = *temp_x2;
-                world_polys[curr_poly]->vertex_list[0].y = *temp_y2;
-                world_polys[curr_poly]->vertex_list[0].z = *temp_z2;
+                // now plug t back in and ifnd x,y intersection with the plane
+                x01i = world_polys[curr_poly]->vertex_list[v0].x + v.x * t1;
+                y01i = world_polys[curr_poly]->vertex_list[v0].y + v.y * t1;
 
-                world_polys[curr_poly]->vertex_list[1].x = *temp_x3;
-                world_polys[curr_poly]->vertex_list[1].y = *temp_y3;
-                world_polys[curr_poly]->vertex_list[1].z = *temp_z3;
+                // clip edge v0->v2
+                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
 
-                // old vertice that existed before
-                polygon.vertex_list[0].x = *temp_x3;
-                polygon.vertex_list[0].y = *temp_y3;
-                polygon.vertex_list[0].z = *temp_z3;
+                // the intersection occurs when z = CLIP_NEAR_Z, so t:
+                t2 = ((CLIP_NEAR_Z - world_polys[curr_poly]->vertex_list[v0].z) / v.z);
 
-                // determine new y-values with old slopes.
-                *temp_y2 = k1 * (*temp_x2 - *temp_x1) + *temp_y1;
-                *temp_y3 = k2 * (*temp_x3 - *temp_x1) + *temp_y1;
+                // now plug t back in and find x,y intersection with the plane
+                x02i = world_polys[curr_poly]->vertex_list[v0].x + v.x * t2;
+                y02i = world_polys[curr_poly]->vertex_list[v0].y + v.y * t2;
 
-                // needs to be temp_2 intersection since new triangle uses
-                // temp_3, i, j. (Old uses: temp_2, temp_3, i)
-                world_polys[curr_poly]->vertex_list[2].x = xi;
-                world_polys[curr_poly]->vertex_list[2].y = *temp_y2;
-                world_polys[curr_poly]->vertex_list[2].z = zi;
+                // now we have both intersection points,
+                // we must overwrite the inplace
+                // polygon's vertex 0 with the intersection point,
+                // this poly 1 of 2 from 
+                // the split
 
-                // temp_2 was used to calculate xi,zi.
-                polygon.vertex_list[1].x = xi;
-                polygon.vertex_list[1].y = *temp_y2;
-                polygon.vertex_list[1].z = zi;
+                // now overwrite vertex with new vertex
+                world_polys[curr_poly]->vertex_list[v0].x = x01i;
+                world_polys[curr_poly]->vertex_list[v0].y = y01i;
+                world_polys[curr_poly]->vertex_list[v0].z = CLIP_NEAR_Z;
 
-                // temp_3 was used to calculate xj, zj;
-                polygon.vertex_list[2].x = xj;
-                polygon.vertex_list[2].y = *temp_y3;
-                polygon.vertex_list[2].z = zj;
+                // now comes the hard part,
+                // we have to carefully create a new polygon
+                // from the 2 intersection points and v2,
+                // this polygon will be inserted
+                // at the end of the rendering list,
+                // but for now, we are building it up
+                // in temp_polygon
 
+                // so leave v2 alone, but overwrite v1 with v01,
+                // and overwrite v0 with v02
+
+                temp_polygon.vertex_list[v1].x = x01i;
+                temp_polygon.vertex_list[v1].y = y01i;
+                temp_polygon.vertex_list[v1].z = CLIP_NEAR_Z;
+
+                temp_polygon.vertex_list[v0].x = x02i;
+                temp_polygon.vertex_list[v0].y = y02i;
+                temp_polygon.vertex_list[v0].z = CLIP_NEAR_Z;
+
+                // re-compute normals
+
+                // poly 1 first, in place
+                u = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
+                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
+                world_polys[curr_poly]->normal = *vector_cross_product(&u, &v);
+
+                // now poly 2, temp_polygon
+                u = *vector_sub(&temp_polygon.vertex_list[v0], &temp_polygon.vertex_list[v1]);
+                v = *vector_sub(&temp_polygon.vertex_list[v0], &temp_polygon.vertex_list[v2]);
+                temp_polygon.normal = *vector_cross_product(&u, &v);
 
                 // add new polygon to pipeline
-                world_poly_storage[num_polys_frame] = polygon;
+                world_poly_storage[num_polys_frame] = temp_polygon;
                 // assing pointer to it
                 world_polys[num_polys_frame] = &world_poly_storage[num_polys_frame];
                 // increment number of polys
                 num_polys_frame++;
 
-            }  
+            } // end else if num_verts_outside == 1
             else {
-                // either all vertices inside or all vertices outside.
                 continue;
-            } // end if vertices outside
-        } // end if number of vertices == 3
-    }
+            };
+
+        } // end if num_points == 3.
+
+    } // end for loop
 }
+
+
 
 int polygon_compare(facet** arg1, facet** arg2) {
     // this function compares the average z's of two polygons and is used by the
@@ -1375,8 +1384,7 @@ void draw_poly_list(uint32_t *pixelmap) {
     // this function draws the golbal polygon list generated by calls to
     // generate_poly_list
 
-    int curr_poly,      // the current polygon
-        is_quad=0;      // quadrilateral flag
+    int curr_poly;      // the current polygon
 
     float x1, y1, z1,
           x2, y2, z2,
@@ -1386,6 +1394,7 @@ void draw_poly_list(uint32_t *pixelmap) {
     // draw each polygon in list
     for(curr_poly = 0; curr_poly < num_polys_frame; curr_poly++)
     {
+        int is_quad = 0;
         // do Z clipping first before projection
         z1 = world_polys[curr_poly]->vertex_list[0].z;
         z2 = world_polys[curr_poly]->vertex_list[1].z;
@@ -1457,8 +1466,7 @@ void draw_poly_list_z(uint32_t* pixelmap) {
     // this function draws the global polygon list generated by calls to 
     // generate_poly_list using the z buffer triangle system.
 
-    int curr_poly,      // the current polygon
-        is_quad=0;      // quadrilateral flag
+    int curr_poly;      // the current polygon
 
     float x1, y1, z1,
           x2, y2, z2,
@@ -1468,6 +1476,8 @@ void draw_poly_list_z(uint32_t* pixelmap) {
     // draw each polygon in list
     for(curr_poly = 0; curr_poly < num_polys_frame; curr_poly++)
     {
+        int is_quad = 0;
+
         // do Z clipping first before projection
         z1 = world_polys[curr_poly]->vertex_list[0].z;
         z2 = world_polys[curr_poly]->vertex_list[1].z;
@@ -1482,12 +1492,13 @@ void draw_poly_list_z(uint32_t* pixelmap) {
 
             // set quad flag
             is_quad = 1;
-        } else {
+        } 
+        else {
             z4 = z3;
         }
 
         // perform z clipping test
-        if((z1<CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) || 
+        if((z1 < CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) || 
         (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z && z4 > CLIP_FAR_Z))
         {
             continue;
@@ -1528,8 +1539,6 @@ void draw_poly_list_z(uint32_t* pixelmap) {
             draw_triangle_3D_z((int) x1, (int) y1, (int) z1,(int) x3, (int) y3, (int) z3,(int) x4, (int) y4, (int) z4, world_polys[curr_poly]->shade, pixelmap);
         } // end if quad
     } // end for curr_poly
-
-    
 }
 
 
@@ -1613,7 +1622,7 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
         dx_right = (x3 - x2) / height;
 
         // compute deltas for z interpolation
-        z_left = z1;
+        z_left  = z1;
         z_right = z2;
 
         // vertical interpolants
@@ -1629,6 +1638,7 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
     else 
     {
         // bottom must be flat
+        // test order of x3 and x2, note y2 == y3
         if(x3 < x2)
         {
             temp_x = x2;
@@ -1648,7 +1658,7 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
         dx_right = (x3 - x1) / height;
 
         // compute deltas for z interpolation
-        z_left = z1;
+        z_left  = z1;
         z_right = z1;
 
         // vertical interpolants
@@ -1697,7 +1707,6 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
        x3 >= poly_clip_min_x && x3 <= poly_clip_max_x)
     {
         // draw the triangle
-
         for(y_index = y1; y_index <= y3; y_index++)
         {
             // 16 bit fixed math point for the horizontal interpolation 
@@ -1705,7 +1714,7 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
             // z_middle set to float
 
             z_middle = z_left;
-            bx = (z_right - z_left) / (1 + xe + xs);
+            bx = (z_right - z_left) / (1 + xe - xs);
 
             for(x_index = (int) xs; x_index <= (int) xe; x_index++)
             {
@@ -1742,7 +1751,6 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
     } // end if no x clipping needed
     else
     {
-
         // clip x axis with slower version
 
         // draw the triangle
@@ -1782,7 +1790,7 @@ void draw_tb_triangle_3d_z(int x1, int y1, int z1,
             } // ned if line is clipped on right
 
             // draw the line
-            for(x_index = (int) xs_clip; x_index <= (int) xe_clip; x_index++)
+            for(x_index = xs_clip; x_index <= xe_clip; x_index++)
             {
                 // if current z_middle is less than z-buffer then replace
                 // and update image buffer
@@ -1927,7 +1935,7 @@ void draw_triangle_2d_gouraud(int x1, int y1, int x2, int y2, int x3, int y3, in
     float intensity_right,  // the intensity of the right edge of the triangle
           intensity_left,   // the intensity of the left edge of the triangle
           intensity_mid,    // the average between the right and left
-          delta_y21, delta_y31, delta_y32; // the y delta's
+          delta_y21, delta_y31; // the y delta's
 
     // compute height of sub triangles
     height_left = y2 - y1;
@@ -1956,7 +1964,6 @@ void draw_triangle_2d_gouraud(int x1, int y1, int x2, int y2, int x3, int y3, in
     // compute shading constants
     delta_y21 = (float) 1 / (float) (y2 - y1);
     delta_y31 = (float) 1 / (float) (y3 - y1);
-    delta_y32 = (float) 1 / (float) (y3 - y2);
 
     for(y = y1; y <= bottom_1; y++)
     {

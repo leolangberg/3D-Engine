@@ -166,6 +166,13 @@ void io_handle_events(IO* io) {
         io->camera->pitch += 0.05;
     }
 
+    if(io_is_key_down(io, SDL_SCANCODE_Y)) {
+        io->camera->position->y += 0.1;
+    }
+    if(io_is_key_down(io, SDL_SCANCODE_U)) {
+        io->camera->position->y -= 0.1;
+    }
+
 
     
 }

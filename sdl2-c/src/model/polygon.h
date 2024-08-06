@@ -134,6 +134,8 @@ void object_view_transformation(Object* object, Matrix* view_inverse);
 int object_culling(Object* object, Matrix* view_inverse, int mode);
 
 void clip_polygon_near_z();
+
+void clip_polygon();
 /**
 * This fnuction clip an object in camera coordiantes against the 3D viewing
 * volume. The function has 2 mode of operation. In CLIP_Z_MODE the 

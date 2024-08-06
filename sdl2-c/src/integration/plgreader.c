@@ -161,7 +161,7 @@ int PLG_Load_Sector(Sector* sector, char *filename) {
 
         polygon.color     = 0xFF444444;
         polygon.shade     = 0;
-        polygon.two_sided = 0;
+        polygon.two_sided = 1;
         polygon.visible   = 1;
         polygon.clipped   = 0;
         polygon.active    = 1;
@@ -182,6 +182,7 @@ int PLG_Load_Sector(Sector* sector, char *filename) {
         wall_index++;
 
     }
+    return 1;
 
 }
 
