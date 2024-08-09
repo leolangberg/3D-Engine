@@ -12,10 +12,10 @@ cube 8 6
 
 # polygon list (color) (num_vertices) (vertex) (vertex) (vertex) 
 #COUNTERCLOCKWISE ORDER (ALL SURFACE NORMALS NEED TO POINT OUTWARDS)
-0xFF0000FF 4 0 1 2 3
-0xFF0000FF 4 4 0 3 5
-0xFF0000FF 4 6 4 5 7
-0xFF0000FF 4 1 6 7 2
-0xFF0000FF 4 0 4 6 1
-0xFF0000FF 4 3 2 7 5 #added extra space after 4 to declare end.
+0x00AA0000 4 0 1 2 3
+0x00AA0000 4 4 0 3 5
+0x00AA0000 4 6 4 5 7
+0x00AA0000 4 1 6 7 2
+0x00AA0000 4 0 4 6 1
+0x00AA0000 4 3 2 7 5 #added extra space after 4 to declare end.
 

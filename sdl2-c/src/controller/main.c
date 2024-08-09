@@ -5,6 +5,7 @@
 #include "../model/camera.h"
 #include "../model/global.h"
 #include "../model/sector.h"
+#include "../model/light/light.h"
 #include <SDL2/SDL.h>
 #include <math.h>
 #include <stdint.h>
@@ -38,11 +39,9 @@ static struct {
 */
 Object object;
 Object test_objects[MAX_AMOUNT_OF_OBJECTS];
-Vector light_source = {-0.913913, 0.389759, -0.113369};
-float ambient_light = 6;
 int num_polys_frame = 0;
-
 int amount_of_objects = 16;
+
 
 
 void init() {
@@ -50,22 +49,74 @@ void init() {
 
     state.camera = camera_init(vector_create(0,0,0));
     state.io = io_create(&state.quit, state.camera);
-      
     
     
-    for(int index = 0; index < amount_of_objects; index++)
+    for(int index = 0; index < 16; index++)
     {
         PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
     }
  
 
-    for(int index=0; index<amount_of_objects; index++)
+    for(int index=0; index<16; index++)
     {
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
         //test_objects[index].polys[0].two_sided = 1;
     }
+
+    RGB white, gray, black, red, green, blue;
+    white.rgba = _RGB32BIT(0, 255, 255, 255);
+    gray.rgba  = _RGB32BIT(0, 100, 100, 100);
+    black.rgba = _RGB32BIT(0, 0, 0, 0);
+    red.rgba   = _RGB32BIT(0, 255, 0, 0);
+    green.rgba = _RGB32BIT(0, 0, 255, 0);
+    blue.rgba  = _RGB32BIT(0, 0, 0, 255);
+
+    Reset_Lights();
+
+    // ambient light
+    light_construct(0, 1, LIGHTV1_ATTR_AMBIENT, 
+                                        gray, black, black,
+                                        NULL, NULL,
+                                        0, 0, 0,
+                                        0, 0, 0);
+    
+    // directional light
+    Vector dlight_dir = {-1, 0, -1};
+    light_construct(1, 1, LIGHTV1_ATTR_INFINITE,
+                                        black, gray, black,
+                                        NULL, &dlight_dir,
+                                        0, 0, 0,
+                                        0, 0, 0);
+
+    // point light
+    Vector plight_pos = {0, 200, 0};
+    light_construct(2, 1, LIGHTV1_ATTR_POINT, 
+                                        black, white, black,
+                                        &plight_pos, NULL,
+                                        0, 0.001, 0,
+                                        0, 0, 1);
+    
+    // spot light
+    Vector slight_pos = {0, 200, 0};
+    Vector slight_dir = {-1, 0, -1};
+    light_construct(3, 1, LIGHTV1_ATTR_SPOTLIGHT2,
+                                    black, white, black,
+                                    &slight_pos, &slight_dir,
+                                    0, 0.001, 0,
+                                    0, 0, 1);
+
+    // Load palette from disk and build lookup table
+    if(!Load_palette_from_file("src/assets/standard.pal", standard_pal)) {
+        printf("palette could not be loaded.\n");
+    }
+    if(!Build_RGB_Lookup_Table(1, standard_pal, rgblookup)) {
+        printf("RGB Lookup Table could not be created.\n");
+    }
+   
+
+
 
 }
 
@@ -146,9 +197,12 @@ int main( int arc, char* args[] ) {
             if(!object_culling(&test_objects[index], state.camera->lookAt, OBJECT_CULL_XYZ_MODE))
             {
                 // convert to world coordinates.
+                // SECTORS ARE ALREADY IN WORLD SPACE
                 object_local_to_world_transformation(&test_objects[index]);
                 // shade and remove backfaces, ignore the backface part for now
                 remove_backfaces_and_shade(&test_objects[index], state.camera->position, CONSTANT_SHADING);
+                // Apply lighting to objects.
+                Light_Object_world8(&test_objects[index], state.camera, lights, num_lights, FLAT_SHADING, rgblookup);
                 // convert world coordinates to camera coordinates.
                 object_view_transformation(&test_objects[index], state.camera->lookAt);
                 //clip the object polygons against viewing volume
@@ -160,6 +214,7 @@ int main( int arc, char* args[] ) {
             }
         }
 
+        // draw polygon list with z-buffer.
         draw_poly_list_z(state.pixels);
 
         
@@ -177,7 +232,7 @@ int main( int arc, char* args[] ) {
 
         memset(state.pixels, 0, sizeof(state.pixels));
         char title[250];
-        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || fYaw=%.2f", 
+        snprintf(title, sizeof(title), "Pos: x=%.2f, y=%.2f, z=%.2f || Dir: x=%.2f, y=%.2f, z=%.2f || fYaw=%.2f || pitch=%.2f", 
                     state.camera->position->x, 
                     state.camera->position->y, 
                     state.camera->position->z,
@@ -186,7 +241,8 @@ int main( int arc, char* args[] ) {
                     state.camera->direction->y,
                     state.camera->direction->z,
                     
-                    state.camera->fYaw);
+                    state.camera->fYaw,
+                    state.camera->pitch);
         SDL_SetWindowTitle(state.window, title);
 
         frameTime = SDL_GetTicks64() - frameStart;

@@ -10,9 +10,9 @@
 #define SCREENWIDTH 1280            // real size of window (only relevant for SDL)   
 #define SCREENHEIGHT 720
 
-#define WINDOW_WIDTH  384           // pixel width of window (Relevant for code)
-#define WINDOW_HEIGHT 216           // pixel height of window
-#define ALL_PIXELS    82944         // total num of pixels in pixel array
+#define WINDOW_WIDTH  384                             // pixel width of window (Relevant for code)
+#define WINDOW_HEIGHT 216                             // pixel height of window
+#define ALL_PIXELS ((WINDOW_WIDTH) * (WINDOW_HEIGHT)) // total num of pixels in pixel array
 
 #define VIEWING_DISTANCE     250    // View distance (FOV)
 #define ASPECT_RATIO         1      // ratio between width and height
@@ -38,5 +38,16 @@
 #define RESET_POLY_LIST 0           // Resets polygon list by setting num_polys_frame = 0
 
 
+// used to compute the min and max of two expresions
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (b) : (a))
+
+// some math macros
+#define DEG_TO_RAD(ang) ((ang)*M_PI/180)
+#define RAD_TO_DEG(rads) ((rads)*180/M_PI)
+
+// bit manipulation macros
+#define SET_BIT(word,bit_flag) ((word)=((word) | (bit_flag)))
+#define RESET_BIT(word,bit_flag) ((word)=((word) & (~bit_flag)))
 
 #endif

@@ -103,7 +103,6 @@ int PLG_Load_Sector(Sector* sector, char *filename) {
         return 0;
     }
 
-    char name[32];
     int index;
         
         // read line 
@@ -118,7 +117,6 @@ int PLG_Load_Sector(Sector* sector, char *filename) {
             return 0;
         }
         
-        char name[32];
         int x1, z1, 
             x2, z2, 
             link;

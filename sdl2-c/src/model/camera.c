@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "math/matrix.h"
 #include <stdlib.h>
 
 
@@ -43,11 +44,10 @@ void camera_update(Camera* camera) {
 
     // apply rotation onto lookAt matrix.
     camera->direction = vector_matrix_mul(vector_create(0,0,1), rotation_y);
-    camera->direction = vector_matrix_mul(camera->direction, rotation_x);
     camera->direction->x = -camera->direction->x;
-    camera->direction->y = -camera->direction->y;
     camera->lookAt = matrix_mul(camera->lookAt, rotation_y);
     camera->lookAt = matrix_mul(camera->lookAt, rotation_x);
+
     
     
     // camera_plane perpendicular to direction

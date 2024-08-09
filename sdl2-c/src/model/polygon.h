@@ -59,15 +59,14 @@ typedef struct {
 }Object;
 
 
-
-
+// Externally declared variables.
 extern Vector light_source;
 extern float  ambient_light;
 extern int num_polys_frame;
 
+// Polygon Arrays.
 facet  world_poly_storage[MAX_POLYS_PER_FRAME];
 facet* world_polys[MAX_POLYS_PER_FRAME];
-
 int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT]; // does not require 2 separate 64k byte arrays because its 2024.
 
 /**

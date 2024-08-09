@@ -432,40 +432,6 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
                 // set visibility
                 object->polys[curr_poly].visible = 1;
 
-                // compute light intensity if needed
-                if(mode == FLAT_SHADING)
-                {
-                    // compute the dot product between light source vector
-                    // and normal vector to surface
-                    dp  = vector_dot_product(&normal, &light_source);
-
-                    // test if light ray is reflecting off surface
-                    if(dp>0)
-                    {
-                        // now cos 0 = (u*v) / |u||v| 
-                        intensity = ambient_light + ((15*dp) / vector_length(&object->polys[curr_poly].normal));
-
-                        // test if intensity has overflowed
-                        if(intensity > 15) {
-                            intensity = 15;
-                        }
-
-                        // intensity now varies from 0-1, 0 being black or grazing and 1 being
-                        // totally illuminated. use the value to index into color table
-
-                        object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
-                
-                    } // end if light is reflecting off surface
-                    else
-                    {
-                        object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
-                    } // end if use flat shading
-                }
-                else
-                {   
-                    // assueme constant shading and simply assign color to shade
-                    object->polys[curr_poly].shade = object->polys[curr_poly].color;
-                } // end else constant shading 
             } // end if face is visible
             else
             {
@@ -491,58 +457,6 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
 
             // compute the normal to polygon v x u
             normal = *vector_cross_product(&v, &u);
-
-            // compute the line of sight vector, since all coordinates are world all
-            // object vertices are already relative to (0,0,0) thus
-
-            sight.x = view_point->x - object->vertices_world[vertex_0].x;
-            sight.y = view_point->y - object->vertices_world[vertex_0].y;
-            sight.z = view_point->z - object->vertices_world[vertex_0].z;
-
-            // compute the dot product between line of sight vector and normal to surface
-            dp = vector_dot_product(&normal, &sight);
-
-            // set the clip flagged appropriately
-            if(dp>0)
-            {
-                // set visibility
-                object->polys[curr_poly].visible = 1;
-
-                // compute light intensity if needed
-                if(mode == FLAT_SHADING)
-                {
-                    // compute the dot product between light source vector
-                    // and normal vector to surface
-                    dp  = vector_dot_product(&normal, &light_source);
-
-                    // test if light ray is reflecting off surface
-                    if(dp>0)
-                    {
-                        // now cos 0 = (u*v) / |u||v| 
-                        intensity = ambient_light + ((15*dp) / vector_length(&object->polys[curr_poly].normal));
-
-                        // test if intensity has overflowed
-                        if(intensity > 15) {
-                            intensity = 15;
-                        }
-
-                        // intensity now varies from 0-1, 0 being black or grazing and 1 being
-                        // totally illuminated. use the value to index into color table
-
-                        object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
-                
-                    } // end if light is reflecting off surface
-                    else
-                    {
-                        object->polys[curr_poly].shade = color_intensity_conversion(object->polys[curr_poly].color, (int) intensity);
-                    } // end if use flat shading
-                }
-                else
-                {   
-                    // assueme constant shading and simply assign color to shade
-                    object->polys[curr_poly].shade = object->polys[curr_poly].color;
-                } // end else constant shading 
-            } // end if face is visible
         } // end else two sided
     } // end for curr_poly
 }
