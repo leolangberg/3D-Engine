@@ -30,6 +30,7 @@
 #define CLIP_Z_MODE 0                       // clips object based on z layer.  
 #define CLIP_XYZ_MODE 1                     // also clips basd on x,y,z.
 
+#define GOURAUD_SHADING 2
 #define FLAT_SHADING 1              // Each polygon has distinct shade for entire surface  
 #define CONSTANT_SHADING 0
 #define ONE_SIDED 0

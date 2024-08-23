@@ -30,6 +30,9 @@ Palette standard_pal[MAX_COLORS_PALETTE];
 // rgb color lookup array.
 unsigned char rgblookup[65536];
 
+// rgb intensity color lookup 2D array.
+unsigned char rgbilookup[256][256];
+
 
 // RGB + alhpa color
 typedef struct { 
@@ -54,6 +57,8 @@ Palette* get_palette_entry(int color_index);
 int Load_palette_from_file(char *filename, Palette* palette);
 
 int Build_RGB_Lookup_Table(int rgb_format, Palette* src_palette, unsigned char* rgblookup);
+
+int Build_RGB_Intensity_Lookup_Table(Palette* src_palette, unsigned char rgbilookup[256][256], int intensity_normalization);
 
 
 

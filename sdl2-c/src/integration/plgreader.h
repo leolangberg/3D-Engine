@@ -12,4 +12,6 @@ int PLG_Load_Object(Object* object, char *filename, float scale);
 
 int PLG_Load_Sector(Sector* sector, char *filename);
 
+char *PLG_Get_Line(char *string, int max_length, FILE *fp);
+
 #endif

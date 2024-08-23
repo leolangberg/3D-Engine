@@ -51,19 +51,23 @@ void init() {
     state.io = io_create(&state.quit, state.camera);
     
     
-    for(int index = 0; index < 16; index++)
+    for(int index = 0; index < amount_of_objects; index++)
     {
-        PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
+        PLG_Load_Object(&test_objects[index], "src/assets/pyramid.plg", 1);
     }
- 
 
-    for(int index=0; index<16; index++)
+
+    
+    for(int index=0; index<amount_of_objects-1; index++)
     {
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
-        //test_objects[index].polys[0].two_sided = 1;
+        test_objects[index].polys[0].two_sided = 1;
     }
+
+    
+    
 
     RGB white, gray, black, red, green, blue;
     white.rgba = _RGB32BIT(0, 255, 255, 255);
@@ -77,35 +81,35 @@ void init() {
 
     // ambient light
     light_construct(0, 1, LIGHTV1_ATTR_AMBIENT, 
-                                        gray, black, black,
-                                        NULL, NULL,
-                                        0, 0, 0,
-                                        0, 0, 0);
+                                       white, black, black,
+                                       NULL, NULL,
+                                       0, 0, 0,
+                                       0, 0, 0);
     
     // directional light
-    Vector dlight_dir = {-1, 0, -1};
+    Vector dlight_dir = {-1, -1, -1};
     light_construct(1, 1, LIGHTV1_ATTR_INFINITE,
-                                        black, gray, black,
+                                        black, white, black,
                                         NULL, &dlight_dir,
                                         0, 0, 0,
                                         0, 0, 0);
 
     // point light
-    Vector plight_pos = {0, 200, 0};
+    Vector plight_pos = {0, 200, 400};
     light_construct(2, 1, LIGHTV1_ATTR_POINT, 
-                                        black, white, black,
-                                        &plight_pos, NULL,
+                                       black, white, black,
+                                       &plight_pos, NULL,
                                         0, 0.001, 0,
-                                        0, 0, 1);
+                                        0, 0, 100);
     
     // spot light
-    Vector slight_pos = {0, 200, 0};
-    Vector slight_dir = {-1, 0, -1};
+    Vector slight_pos = {0, 200, 400};
+    Vector slight_dir = {-1, -1, -1};
     light_construct(3, 1, LIGHTV1_ATTR_SPOTLIGHT2,
                                     black, white, black,
                                     &slight_pos, &slight_dir,
                                     0, 0.001, 0,
-                                    0, 0, 1);
+                                    0, 0, 100);
 
     // Load palette from disk and build lookup table
     if(!Load_palette_from_file("src/assets/standard.pal", standard_pal)) {
@@ -114,10 +118,9 @@ void init() {
     if(!Build_RGB_Lookup_Table(1, standard_pal, rgblookup)) {
         printf("RGB Lookup Table could not be created.\n");
     }
-   
-
-
-
+    if(!Build_RGB_Intensity_Lookup_Table(standard_pal, rgbilookup, 1)) {
+        printf("RGB Lookup Table could not be created.\n");
+    }
 }
 
 

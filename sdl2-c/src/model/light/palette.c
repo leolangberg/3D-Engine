@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../math/vector.h"
+#include "../../integration/plgreader.h"
 
 
 // change a single color in the standard main color palette
@@ -28,6 +29,8 @@ int Load_palette_from_file(char *filename, Palette* palette) {
     FILE *fp_file;      // working file
     int index,          // looping variable
         r,g,b,f;        // red, green, blue, flags
+    
+    char buffer[80];
 
     // try and open file
     if((fp_file = fopen(filename, "r")) == NULL) {
@@ -39,7 +42,14 @@ int Load_palette_from_file(char *filename, Palette* palette) {
     for(index = 0; index < MAX_COLORS_PALETTE; index++)
     {
         // read the next entry
-        fscanf(fp_file, "%d %d %d %d", &r, &g, &b, &f);
+        if(!PLG_Get_Line(buffer, 80, fp_file)) {
+            printf("Error with PLG file %s (stop 1)", filename);
+            fclose(fp_file);
+            return 0;
+        }
+
+        sscanf(buffer, "%d %d %d %d", &r, &g, &b, &f);
+
         palette[index].red   = r;
         palette[index].green = g;
         palette[index].blue  = b;

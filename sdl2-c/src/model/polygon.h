@@ -22,7 +22,7 @@ typedef struct {
     Vector normal;
 
     int color;
-    int shade;
+    int shade[4];
     int two_sided;
     int visible;
     int active;
@@ -32,8 +32,8 @@ typedef struct {
 
 typedef struct {
     int num_points;     // number of vertices
-    int color;          // color of polygon
-    int shade;          // the final shade of color lighting
+    int color;       // color for each vertex of polygon
+    int shade[4];       // the final shade of color lighting for each vertex of polygon
     int two_sided;      // is the facet two sided
     int visible;        // is the facet transparent
     int clipped;        // has this poly been clipped
@@ -175,7 +175,12 @@ void fill_z_buffer(int value);
 void draw_triangle_3D_z(int x1, int y1, int z1,
                         int x2, int y2, int z2,
                         int x3, int y3, int z3,
-                        int color, uint32_t* pixelmap);
+                        int color[4], uint32_t* pixelmap);
+
+void draw_tb_triangle_3d_gouraud(int x1, int y1, int z1, int i1,
+                        int x2, int y2, int z2, int i2,
+                        int x3, int y3, int z3, int i3,
+                        uint32_t* pixelmap);
 
 /**
 * Same as draw_poly_list() except that this function also

@@ -9,6 +9,6 @@ wall 4 1
 
 # polygon list (color) (num_vertices) (vertex) (vertex) (vertex) 
 #COUNTERCLOCKWISE ORDER (ALL SURFACE NORMALS NEED TO POINT OUTWARDS)
-0xFF0AA0FF 4 0 1 2 3 
+0x00444444 4 0 1 2 3 
 
 

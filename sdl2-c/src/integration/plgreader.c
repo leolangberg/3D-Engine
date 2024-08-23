@@ -158,7 +158,10 @@ int PLG_Load_Sector(Sector* sector, char *filename) {
         polygon.vertex_list[3] = 3;
 
         polygon.color     = 0xFF444444;
-        polygon.shade     = 0;
+        polygon.shade[0]     = 0;
+        polygon.shade[1]     = 0;
+        polygon.shade[2]     = 0;
+        polygon.shade[3]     = 0;
         polygon.two_sided = 1;
         polygon.visible   = 1;
         polygon.clipped   = 0;
