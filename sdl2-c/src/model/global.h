@@ -13,6 +13,7 @@
 #define WINDOW_WIDTH  384                             // pixel width of window (Relevant for code)
 #define WINDOW_HEIGHT 216                             // pixel height of window
 #define ALL_PIXELS ((WINDOW_WIDTH) * (WINDOW_HEIGHT)) // total num of pixels in pixel array
+#define PIXEL(x,y) ((y * WINDOW_WIDTH) + x)
 
 #define VIEWING_DISTANCE     250    // View distance (FOV)
 #define ASPECT_RATIO         1      // ratio between width and height

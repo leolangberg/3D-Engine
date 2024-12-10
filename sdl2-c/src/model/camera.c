@@ -53,4 +53,8 @@ void camera_update(Camera* camera) {
     // camera_plane perpendicular to direction
     Matrix* planerot = matrix_create_rotation_matrix_y((M_PI / 2));
     camera->camera_plane = vector_matrix_mul(camera->direction, planerot);
+
+    free(rotation_y);
+    free(rotation_x);
+    free(planerot);
 }

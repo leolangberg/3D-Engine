@@ -115,7 +115,7 @@ void display_draw_pixel(uint32_t* pixelmap, int x, int y, uint32_t color) {
         //printf("pixel not drawn: (%d,%d)\n", x, y);
         return;
     }
-    pixelmap[(y * WINDOW_WIDTH) + x] = color;
+    pixelmap[PIXEL(x,y)] = color;
 }
 
 /**

@@ -352,8 +352,8 @@ Matrix* matrix_copy(const Matrix* original) {
 Matrix* matrix_point_at(const Vector* pos, Vector* direction, const Vector* up) {
     
     Vector* forward = vector_normalize(direction);
-    Vector* a = vector_scale(forward, vector_dot_product(up, forward));
-    Vector* newUp = vector_sub(a, up);
+    Vector* scale = vector_scale(forward, vector_dot_product(up, forward));
+    Vector* newUp = vector_sub(scale, up);
     Vector* newRight = vector_cross_product(newUp, forward);
 
     Matrix* pointAt = matrix_create_identity_matrix();
@@ -373,6 +373,11 @@ Matrix* matrix_point_at(const Vector* pos, Vector* direction, const Vector* up) 
     pointAt->matrix[3][1] = pos->y;
     pointAt->matrix[3][2] = pos->z;
     pointAt->matrix[3][3] = 1.0f; 
+
+    free(forward);
+    free(scale);
+    free(newUp);
+    free(newRight);
 
     return pointAt;
 }

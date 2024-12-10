@@ -53,7 +53,7 @@ void init() {
     
     for(int index = 0; index < amount_of_objects; index++)
     {
-        PLG_Load_Object(&test_objects[index], "src/assets/pyramid.plg", 1);
+        PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
     }
 
 
