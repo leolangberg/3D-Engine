@@ -1,17 +1,17 @@
 #include "../integration/plgreader.h"
 #include "../integration/display.h"
 #include "../integration/io.h"
-#include "../model/polygon.h"
+#include "../model/object/polygon.h"
 #include "../model/camera.h"
 #include "../model/global.h"
 #include "../model/sector.h"
-#include "../model/light/light.h"
 #include <SDL2/SDL.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <limits.h>
 
 
 #define MAX_AMOUNT_OF_OBJECTS 24
@@ -39,88 +39,29 @@ static struct {
 */
 Object object;
 Object test_objects[MAX_AMOUNT_OF_OBJECTS];
-int num_polys_frame = 0;
 int amount_of_objects = 16;
 
 
+int num_polys_frame = 0;
+facet* world_polys[MAX_POLYS_PER_FRAME];
+facet world_poly_storage[MAX_POLYS_PER_FRAME];
+int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT]; 
 
-void init() {
 
 
+
+// Initialize camera, io and all external objects.
+void initialize_state(void) {
     state.camera = camera_init(vector_create(0,0,0));
     state.io = io_create(&state.quit, state.camera);
-    
-    
     for(int index = 0; index < amount_of_objects; index++)
     {
         PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
-    }
-
-
-    
-    for(int index=0; index<amount_of_objects-1; index++)
-    {
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
-        test_objects[index].polys[0].two_sided = 1;
-    }
-
-    
-    
-
-    RGB white, gray, black, red, green, blue;
-    white.rgba = _RGB32BIT(0, 255, 255, 255);
-    gray.rgba  = _RGB32BIT(0, 100, 100, 100);
-    black.rgba = _RGB32BIT(0, 0, 0, 0);
-    red.rgba   = _RGB32BIT(0, 255, 0, 0);
-    green.rgba = _RGB32BIT(0, 0, 255, 0);
-    blue.rgba  = _RGB32BIT(0, 0, 0, 255);
-
-    Reset_Lights();
-
-    // ambient light
-    light_construct(0, 1, LIGHTV1_ATTR_AMBIENT, 
-                                       white, black, black,
-                                       NULL, NULL,
-                                       0, 0, 0,
-                                       0, 0, 0);
-    
-    // directional light
-    Vector dlight_dir = {-1, -1, -1};
-    light_construct(1, 1, LIGHTV1_ATTR_INFINITE,
-                                        black, white, black,
-                                        NULL, &dlight_dir,
-                                        0, 0, 0,
-                                        0, 0, 0);
-
-    // point light
-    Vector plight_pos = {0, 200, 400};
-    light_construct(2, 1, LIGHTV1_ATTR_POINT, 
-                                       black, white, black,
-                                       &plight_pos, NULL,
-                                        0, 0.001, 0,
-                                        0, 0, 100);
-    
-    // spot light
-    Vector slight_pos = {0, 200, 400};
-    Vector slight_dir = {-1, -1, -1};
-    light_construct(3, 1, LIGHTV1_ATTR_SPOTLIGHT2,
-                                    black, white, black,
-                                    &slight_pos, &slight_dir,
-                                    0, 0.001, 0,
-                                    0, 0, 100);
-
-    // Load palette from disk and build lookup table
-    if(!Load_palette_from_file("src/assets/standard.pal", standard_pal)) {
-        printf("palette could not be loaded.\n");
-    }
-    if(!Build_RGB_Lookup_Table(1, standard_pal, rgblookup)) {
-        printf("RGB Lookup Table could not be created.\n");
-    }
-    if(!Build_RGB_Intensity_Lookup_Table(standard_pal, rgbilookup, 1)) {
-        printf("RGB Lookup Table could not be created.\n");
-    }
+        // test_objects[index].polys[0].two_sided = 1;
+    }  
 }
 
 
@@ -172,7 +113,7 @@ int main( int arc, char* args[] ) {
         "failed to create SDL texture %s\n",
         SDL_GetError());
 
-    init();
+    initialize_state();
 
 
     /**
@@ -187,14 +128,17 @@ int main( int arc, char* args[] ) {
     uint64_t frameStart, frameTime;
     while(!state.quit)
     {
-        frameStart = SDL_GetTicks64(); //SDL_GetTicks - Uint32.
+        frameStart = SDL_GetTicks64(); // SDL_GetTicks - Uint32.
 
-        fill_z_buffer(16000);
+        // Fill z_buffer with highest possible values.
+        for(int i = 0; i < ALL_PIXELS; i++) {
+            z_buffer[i] = INT_MAX;
+        }
+        
         io_handle_events(state.io);
         camera_update(state.camera);
+        reset_poly_list(&num_polys_frame);
 
-        generate_poly_list(NULL, RESET_POLY_LIST);
-        
         for(int index = 0; index < amount_of_objects; index++)
         {
             if(!object_culling(&test_objects[index], state.camera->lookAt, OBJECT_CULL_XYZ_MODE))
@@ -204,21 +148,22 @@ int main( int arc, char* args[] ) {
                 object_local_to_world_transformation(&test_objects[index]);
                 // shade and remove backfaces, ignore the backface part for now
                 remove_backfaces_and_shade(&test_objects[index], state.camera->position, CONSTANT_SHADING);
-                // Apply lighting to objects.
-                Light_Object_world8(&test_objects[index], state.camera, lights, num_lights, FLAT_SHADING, rgblookup);
+               
                 // convert world coordinates to camera coordinates.
                 object_view_transformation(&test_objects[index], state.camera->lookAt);
                 //clip the object polygons against viewing volume
                 clip_object_3D(&test_objects[index], CLIP_XYZ_MODE);
                 // generate poly list
-                generate_poly_list(&test_objects[index], 1);
+                generate_poly_list(world_poly_storage, world_polys, &num_polys_frame, &test_objects[index]);
+                printf("num_polys: %d\n", num_polys_frame);
                 // clip near z possible polygons.
-                clip_polygon();
+                clip_polygon(world_poly_storage, world_polys, &num_polys_frame);
+                printf("polygon clipped.\n");
             }
         }
 
         // draw polygon list with z-buffer.
-        draw_poly_list_z(state.pixels);
+        draw_poly_list_z(world_polys, &num_polys_frame, state.pixels, z_buffer);
 
         
         

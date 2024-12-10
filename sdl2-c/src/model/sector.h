@@ -1,7 +1,7 @@
 #ifndef SECTOR_H
 #define SECTOR_H
 
-#include "polygon.h"
+#include "object/polygon.h"
 
 
 typedef struct {

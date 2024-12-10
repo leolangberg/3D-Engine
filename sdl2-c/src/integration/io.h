@@ -8,7 +8,7 @@
 #include "../model/camera.h"
 #include "../model/math/matrix.h"
 #include "SDL2/SDL_keyboard.h"
-#include "../model/polygon.h"
+#include "../model/object/polygon.h"
 
 #define MOUSE_LEFT 0
 #define MOUSE_MIDDLE 1

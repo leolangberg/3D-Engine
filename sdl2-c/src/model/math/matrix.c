@@ -24,10 +24,8 @@ void matrix_print(const Matrix* m1) {
 */
 Matrix* matrix_add(const Matrix* m1, const Matrix* m2) {
     Matrix* result = malloc(sizeof(Matrix));
-    for(int i = 0; i < ROW; i++) 
-    {
-        for(int j = 0; j < COL; j++)
-        {
+    for(int i = 0; i < ROW; i++)  {
+        for(int j = 0; j < COL; j++) {
             result->matrix[i][j] = m1->matrix[i][j] + m2->matrix[i][j];
         }
     }
@@ -40,10 +38,8 @@ Matrix* matrix_add(const Matrix* m1, const Matrix* m2) {
 */
 Matrix* matrix_sub(const Matrix* m1, const Matrix* m2) {
     Matrix* result = malloc(sizeof(Matrix));
-    for(int i = 0; i < ROW; i++) 
-    {
-        for(int j = 0; j < COL; j++)
-        {
+    for(int i = 0; i < ROW; i++) {
+        for(int j = 0; j < COL; j++) {
             result->matrix[i][j] = m1->matrix[i][j] - m2->matrix[i][j];
         }
     }
@@ -56,13 +52,10 @@ Matrix* matrix_sub(const Matrix* m1, const Matrix* m2) {
 */
 Matrix* matrix_mul(const Matrix* m1, const Matrix* m2) {
     Matrix* result = malloc(sizeof(Matrix));
-    for(int i = 0; i < ROW; i++)
-    {
-        for(int j = 0; j < COL; j++)
-        {
+    for(int i = 0; i < ROW; i++) {
+        for(int j = 0; j < COL; j++) {
             float element = 0;
-            for(int k = 0; k < COL; k++)
-            {
+            for(int k = 0; k < COL; k++) {
                 element += (m1->matrix[i][k] * m2->matrix[k][j]);
             }
             result->matrix[i][j] = element;
@@ -334,10 +327,8 @@ void matrix_scale(Matrix* m1, Vector* center, float scale_factor) {
 */
 Matrix* matrix_copy(const Matrix* original) {
     Matrix* copy = (Matrix*)malloc(sizeof(Matrix));
-    for(int i = 0; i < ROW; i++)
-    {
-        for(int j = 0; j < COL; j++)
-        {
+    for(int i = 0; i < ROW; i++) {
+        for(int j = 0; j < COL; j++) {
             copy->matrix[i][j] = original->matrix[i][j];
         }
     }

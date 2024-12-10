@@ -1,9 +1,10 @@
 #ifndef POLYGON_H
 #define POLYGON_H
 
-#include "math/vector.h"
-#include "math/matrix.h"
-#include "global.h"
+#include "../math/vector.h"
+#include "../math/matrix.h"
+#include "../global.h"
+#include "../../integration/display.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -11,7 +12,6 @@
 #define MAX_VERTICES_PER_OBJECT 24
 #define MAX_POINTS_PER_POLYGON 4
 #define MAX_POLYS_PER_OBJECT 6
-
 #define MAX_POLYS_PER_FRAME 128
 
 
@@ -58,16 +58,6 @@ typedef struct {
     Vector world_pos;
 }Object;
 
-
-// Externally declared variables.
-extern Vector light_source;
-extern float  ambient_light;
-extern int num_polys_frame;
-
-// Polygon Arrays.
-facet  world_poly_storage[MAX_POLYS_PER_FRAME];
-facet* world_polys[MAX_POLYS_PER_FRAME];
-int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT]; // does not require 2 separate 64k byte arrays because its 2024.
 
 /**
 * Draws Triangle on pixel screen.
@@ -132,9 +122,16 @@ void object_view_transformation(Object* object, Matrix* view_inverse);
 */
 int object_culling(Object* object, Matrix* view_inverse, int mode);
 
-void clip_polygon_near_z();
+/**
+* Function handles case for when polygon is only partly inside view frustum
+* with the other part being in behind camera (z < CLIP_NEAR_Z). If this happens then
+* approach is to determine intersection of polygon with the camera plane and clip the 
+* polygon to these new points.
+* If polygon is a quad then simply cut it up into 2 triangles and redo the process. Similar
+* thing can happen if triangle only has 1 point outside of frame. 
+*/
+void clip_polygon(facet *world_poly_storage, facet **world_polys, int *num_polys_frame);
 
-void clip_polygon();
 /**
 * This fnuction clip an object in camera coordiantes against the 3D viewing
 * volume. The function has 2 mode of operation. In CLIP_Z_MODE the 
@@ -148,24 +145,15 @@ void clip_object_3D(Object* object, int mode);
 * rendered. Object by object the list is built up.
 * To reset list call (NULL, RESET_POLY_LIST)
 */
-void generate_poly_list(Object* object, int mode);
+void generate_poly_list(facet *world_poly_storage, facet **world_polys, int *num_polys_frame, Object* object);
 
-/**
-* Calls qsort() function to perform sort of polygon list based on
-* descending z-value.
-*/
-void sort_polygon_list(void);
+// Resets polygon list by setting num_polys_frame to 0.
+void reset_poly_list(int *num_polys_frame);
 
 /*
 * Draws all polygons in list. Similar to object_draw_solid.
 */
-void draw_poly_list(uint32_t *pixelmap);
-
-/**
-* Fills z_buffer with constant value that needs to be 
-* much larger than any normal z value.
-*/
-void fill_z_buffer(int value);
+void draw_poly_list_z(facet **world_polys, int *num_polys_frame, uint32_t* pixelmap, int *z_buffer);
 
 /**
 * Draws Triangles by determining float top or bottom triangle. 
@@ -175,18 +163,13 @@ void fill_z_buffer(int value);
 void draw_triangle_3D_z(int x1, int y1, int z1,
                         int x2, int y2, int z2,
                         int x3, int y3, int z3,
-                        int color[4], uint32_t* pixelmap);
+                        int color[4], uint32_t* pixelmap, int *z_buffer);
 
 void draw_tb_triangle_3d_gouraud(int x1, int y1, int z1, int i1,
                         int x2, int y2, int z2, int i2,
                         int x3, int y3, int z3, int i3,
-                        uint32_t* pixelmap);
+                        uint32_t* pixelmap, int *z_buffer);
 
-/**
-* Same as draw_poly_list() except that this function also
-* incorporates the Z-buffer.
-*/
-void draw_poly_list_z(uint32_t* pixelmap);
 
 /**
 * Extra shading function that breaks the triangle down using interpolation
@@ -194,7 +177,9 @@ void draw_poly_list_z(uint32_t* pixelmap);
 * Achieve a finer look.
 * DOES NOT QUITE WORK AS OF NOW.
 */
-void draw_triangle_2d_gouraud(int x1, int y1, int x2, int y2, int x3, int y3, int color, int intensity_1, int intensity_2, int intensity_3, uint32_t *pixelmap);
+void draw_triangle_2d_gouraud(int x1, int y1, int x2, int y2, int x3, int y3,
+                              int color, int intensity_1, int intensity_2, 
+                              int intensity_3, uint32_t *pixelmap, int *z_buffer);
 
 
 

@@ -1,4 +1,4 @@
-#include "../model/polygon.h"
+#include "../model/object/polygon.h"
 #include "../model/sector.h"
 
 #ifndef PLG_READER_H

@@ -51,5 +51,6 @@
 // bit manipulation macros
 #define SET_BIT(word,bit_flag) ((word)=((word) | (bit_flag)))
 #define RESET_BIT(word,bit_flag) ((word)=((word) & (~bit_flag)))
+#define _RGB32BIT(a,r,g,b) ((r) + ((g) << 8) + ((b) << 16) + ((a) << 24))
 
 #endif
