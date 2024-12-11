@@ -54,7 +54,6 @@ static inline Vector vector_dot_product_vector(const Vector* v1, const Vector* v
     return vector_create((v1->x * v2->x), (v1->y * v2->y), (v1->z * v2->z));
 }
 
-
 // Calculate slope of 2 vectors (2D).
 static inline float vector_slope(const Vector* v1, const Vector* v2) {
     return ((v2->y - v1->y) / (v2->x - v1->x));
@@ -83,18 +82,5 @@ static inline int vector_equals(const Vector *v1, const Vector *v2) {
 
 // Normalizes the vector (scale with magnutide of itself).
 Vector vector_normalize(const Vector* v1);
-
-/**
-* this function computes the intersection fo the sent lines
-* and returns the intersection point, note that the function assumes
-* the lines intersect. The function can handle vertical as well as
-* horizontal lines. Note the function isnt very clever, it simply applies
-* the math, but we dont need speed since this si a pre-processing step.
-*/
-void intersect_lines(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float *xi, float *yi);
-
-int get_line_intersection(float p0_x, float p0_y, float p1_x, float p1_y, 
-    float p2_x, float p2_y, float p3_x, float p3_y, float *i_x, float *i_y);
-
 
 #endif

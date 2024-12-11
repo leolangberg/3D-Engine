@@ -1,4 +1,3 @@
-
 #ifndef IO_H
 #define IO_H
 
@@ -13,7 +12,6 @@
 #define MOUSE_LEFT 0
 #define MOUSE_MIDDLE 1
 #define MOUSE_RIGHT 2
-
 
 // IO structure.
 // IO to correspond to 1 single vector (target) onto which the IO will act on. 
@@ -49,19 +47,12 @@ static inline void io_on_mouse_move(IO* io, SDL_Event* event) {
     io->mouse_positon.x = event->motion.x;
     io->mouse_positon.y = event->motion.y;
 }
-
 // Checks whether specific key is pressed given current keyboard state.
 bool io_is_key_down(IO* io, SDL_Scancode key);
-
-/**
-* Switch Case table for all types of SDL Poll-Events.
-*/
+// Switch Case table for all types of SDL Poll-Events.
 void io_event_update(IO* io);
-
-/**
-* Incorporates io_event_update together with outlined SDL_SCANCODE keys.
-* Method basically handles controls.
-*/
+// Incorporates io_event_update together with outlined SDL_SCANCODE keys.
+// Method basically handles controls.
 void io_handle_events(IO* io);
 
 #endif

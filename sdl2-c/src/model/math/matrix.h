@@ -5,7 +5,6 @@
 #define ROW 4
 #define COL 4
 
-
 // Matrix struct, holds 2D array of Rows and Columns.
 typedef struct{
     float matrix[ROW][COL];

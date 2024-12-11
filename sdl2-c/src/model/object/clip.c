@@ -74,8 +74,6 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
     } // end for curr_poly
 }
 
-
-
 // Determines if object is out of frame by comparing bounding sphere to z and then x,y frame.
 // return 1 means object is out of frame and should be removed. 0 means it should not be removed.
 int object_culling(Object* object, Matrix* view_inverse, int mode) {

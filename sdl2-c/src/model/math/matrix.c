@@ -3,7 +3,6 @@
 #include <math.h>
 #include "matrix.h"
 
-
 // Prints Matrix.
 // Having incorrect %f or %d makes all printouts bugged.
 void matrix_print(const Matrix* m1) {
@@ -314,13 +313,9 @@ Matrix matrix_quick_lookat_inverse(const Matrix* pointAt) {
     return lookAt;
 }
 
-
 // multiplies a vector with a matrix and then returns a new vector.
 Vector vector_matrix_mul(const Vector* v1, const Matrix* m1) {
     Matrix m_vec = vector_as_matrix(v1);
     Matrix m_mul = matrix_mul(&m_vec, m1);
     return vector_from_matrix_row(&m_mul, 0);
 }
-
-
-
