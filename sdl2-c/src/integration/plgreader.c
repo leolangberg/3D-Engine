@@ -3,9 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-/**
-* Reads line of PLG file and converts file text into string. 
-*/
+// Reads line of PLG file and converts file text into string. 
 char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
     // this function get a line from a PLG file and strips comments
     // just pretend it's a black box!
@@ -78,119 +76,8 @@ char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
     }
 }
 
-
-/**
-* Beware of the strtok as it carves the buffer up and leaves only single words for scanff.
-*/
-int PLG_Load_Sector(Sector* sector, char *filename) {
-    
-    FILE *fp;               // disk file
-    char buffer[80];        // holds input string
-
-    int wall_index = 0;         // current row of wall reading
-
-
-    // open the disk file
-    if((fp=fopen(filename, "r")) == NULL) {
-        printf("Could not open file %s\n", filename);
-        return 0;
-    }
-
-    // read line 
-    if(!PLG_Get_Line(buffer, 80, fp)) {
-        printf("Error with PLG file %s (stop 1)", filename);
-        fclose(fp);
-        return 0;
-    }
-
-    int index;
-        
-        // read line 
-    sscanf(buffer, "%d %d %d %d %d", &sector->id, &index, &sector->num_walls, &sector->floor, &sector->ceiling);
-  
-    for(int i = 0; i < sector->num_walls; i++) 
-    {
-        // read line 
-        if(!PLG_Get_Line(buffer, 80, fp)) {
-            printf("Error with PLG file %s (stop 1)", filename);
-            fclose(fp);
-            return 0;
-        }
-        
-        int x1, z1, 
-            x2, z2, 
-            link;
-
-        // read line
-        sscanf(buffer, "%d %d %d %d %d", &x1, &z1, &x2, &z2, &link);
-
-        // declare object 
-        Object object;
-        object.id = sector->id;
-        object.num_vertices = 4;
-        object.num_polys = 1;
-        object.state = 1;
-
-        object.vertices_world[0].x = x1;
-        object.vertices_world[0].y = sector->floor;
-        object.vertices_world[0].z = z1;
-
-        object.vertices_world[1].x = x2;
-        object.vertices_world[1].y = sector->floor;
-        object.vertices_world[1].z = z2;
-
-        object.vertices_world[2].x = x2;
-        object.vertices_world[2].y = sector->ceiling;
-        object.vertices_world[2].z = z2;
-
-        object.vertices_world[3].x = x1;
-        object.vertices_world[3].y = sector->ceiling;
-        object.vertices_world[3].z = z1;
-
-        // declare polygon 
-        Polygon polygon;
-        Vector u,v;
-
-        polygon.num_points = 4;
-        polygon.vertex_list[0] = 0;
-        polygon.vertex_list[1] = 1;
-        polygon.vertex_list[2] = 2;
-        polygon.vertex_list[3] = 3;
-
-        polygon.color     = 0xFF444444;
-        polygon.shade[0]     = 0;
-        polygon.shade[1]     = 0;
-        polygon.shade[2]     = 0;
-        polygon.shade[3]     = 0;
-        polygon.two_sided = 1;
-        polygon.visible   = 1;
-        polygon.clipped   = 0;
-        polygon.active    = 1;
-
-        u = *vector_sub(&object.vertices_world[0], &object.vertices_world[1]);
-        v = *vector_sub(&object.vertices_world[0], &object.vertices_world[2]);
-        polygon.normal = *vector_cross_product(&u, &v);
-        
-        // place polygon in object 
-        object.polys[0] = polygon;
-        object.world_pos.x = 0;
-        object.world_pos.y = 0;
-        object.world_pos.z = 0;
-        object.radius = 1; //compute_object_radius(&object);
-
-        // place object in sector object list
-        sector->wall_list[wall_index] = object;
-        wall_index++;
-
-    }
-    return 1;
-
-}
-
-/**
-* Loads PLG files by reading from the text file and declaring variables accordingly.
-* Also has the option to scale the object as it is being constructed.
-*/
+// Loads PLG files by reading from the text file and declaring variables accordingly.
+// Also has the option to scale the object as it is being constructed.
 int PLG_Load_Object(Object* object, char *filename, float scale) {
     // this function loads an object off disk and allows it to be scaled.
 
@@ -348,11 +235,11 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
         vertex_2 = object->polys[index].vertex_list[2];
 
         // the vector u = v0->v1
-        u = *vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_1]);
+        u = vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_1]);
         // the vector v = v0->v2
-        v = *vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_2]);
+        v = vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_2]);
 
-        normal = *vector_cross_product(&v, &u);
+        normal = vector_cross_product(&v, &u);
         object->polys[index].normal = normal;
     }
 

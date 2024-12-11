@@ -1,55 +1,42 @@
 #include "polygon.h"
 
-
-/**
-* Removes backfaces meaning that the method determines if polygons are invisible or clipped from
-* the current viewpoint, and thus only draws relevant polygons. 
-* Relevant polygons of object are also colored and shaded correctly based on direction 
-* to light source.
-*/
+// Removes backfaces meaning that the method determines if polygons are invisible or clipped from
+// the current viewpoint, and thus only draws relevant polygons. Relevant polygons of object are
+// also colored and shaded.
 void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
     // this function removes all the backfaces of a n object by setting the removed
     // flag. This function assumes that the object has been transformed into 
     // camera coordinates. Also, the function computes the flat shading of the 
     // object. 
-
     int vertex_0,       // vertex indices
         vertex_1,
         vertex_2,
         curr_poly;      // current polygon
-
-    float dp,           // the result of the dot product
-          intensity;    // the final intesity of the surface
-
+    float dp;           // the result of the dot product
+          //intensity;    // the final intesity of the surface
     Vector u,v,         // general working vectors
            normal,      // the normal to the surface being processed
            sight;       // line of sight vector
 
     // for each polygon in the object determine if it is pointing away from the
     // viewpoint and direction
-
-    for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
-    {
-
-        if(object->polys[curr_poly].two_sided == ONE_SIDED)
-        {
+    for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++) {
+        if(object->polys[curr_poly].two_sided == ONE_SIDED) {
 
             // compute the two vectors on polygon that have the same initial points
             vertex_0 = object->polys[curr_poly].vertex_list[0];
             vertex_1 = object->polys[curr_poly].vertex_list[1];
             vertex_2 = object->polys[curr_poly].vertex_list[2];
 
-            // the vector u = v0->v1
-            // the vector v = v0->v2
-            u = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
-            v = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
+            // the vector u = v0->v1 and vector v = v0->v2
+            u = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
+            v = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
 
             // compute the normal to polygon v x u
-            normal = *vector_cross_product(&v, &u);
+            normal = vector_cross_product(&v, &u);
 
             // compute the line of sight vector, since all coordinates are world all
             // object vertices are already relative to (0,0,0) thus
-
             sight.x = view_point->x - object->vertices_world[vertex_0].x;
             sight.y = view_point->y - object->vertices_world[vertex_0].y;
             sight.z = view_point->z - object->vertices_world[vertex_0].z;
@@ -58,19 +45,15 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
             dp = vector_dot_product(&normal, &sight);
 
             // set the clip flagged appropriately
-            if(dp>0)
-            {
+            if(dp>0) {
                 // set visibility
                 object->polys[curr_poly].visible = 1;
-
             } // end if face is visible
-            else
-            {
+            else {
                 object->polys[curr_poly].visible = 0; // set invisible flag
             } 
         }
-        else
-        {
+        else {
             // else polygon is always visible i.e. two sided, set visibility flag
             // so negine renders it
             object->polys[curr_poly].visible = 1;
@@ -81,27 +64,24 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
             vertex_1 = object->polys[curr_poly].vertex_list[1];
             vertex_2 = object->polys[curr_poly].vertex_list[2];
 
-            // the vector u = v0->v1
-            // the vector v = v0->v2
-            u = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
-            v = *vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
+            // the vector u = v0->v1 and vector v = v0->v2
+            u = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
+            v = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
 
             // compute the normal to polygon v x u
-            normal = *vector_cross_product(&v, &u);
+            normal = vector_cross_product(&v, &u);
         } // end else two sided
     } // end for curr_poly
 }
 
 
-/**
-* Determines if object is out of frame by comparing bounding sphere to z and then x,y frame.
-* @return 1 means object is out of frame and should be removed. 0 means it should not be removed.
-*/
+
+// Determines if object is out of frame by comparing bounding sphere to z and then x,y frame.
+// return 1 means object is out of frame and should be removed. 0 means it should not be removed.
 int object_culling(Object* object, Matrix* view_inverse, int mode) {
     // this function determines if an entire object is within the viewing volume 
     // or not by testing if the bounding sphere of the object in question 
     // is within the viewing volume. In essence, this function "culls" entire objects
-
     float x_bsphere,    // the x,y,z components of the projected center of object
           y_bsphere,
           z_bsphere,
@@ -110,44 +90,40 @@ int object_culling(Object* object, Matrix* view_inverse, int mode) {
           y_compare;    // bound spheres current z
 
     //first transform world position of object into camera coordinates
-    Vector view_pos = *vector_matrix_mul(&object->world_pos, view_inverse);
+    Vector view_pos = vector_matrix_mul(&object->world_pos, view_inverse);
     x_bsphere = view_pos.x;
     y_bsphere = view_pos.y;
     z_bsphere = view_pos.z;
-
-    // extract radius of object
     radius = object->radius;
 
-    if(mode == OBJECT_CULL_Z_MODE)
-    {
+    if(mode == OBJECT_CULL_Z_MODE) {
         // first test against near and far z planes
-        if(((z_bsphere - radius) > CLIP_FAR_Z) || ((z_bsphere + radius) < CLIP_NEAR_Z)) {
+        if(((z_bsphere - radius) > CLIP_FAR_Z) || 
+           ((z_bsphere + radius) < CLIP_NEAR_Z)) {
             return 1;
         } else {
             return 0;
         } // end if z only
     }
-    else
-    {
+    else {
         // perform full x,y,z test
-        if(((z_bsphere - radius) > CLIP_FAR_Z) || ((z_bsphere + radius) < CLIP_NEAR_Z)) {
+        if(((z_bsphere - radius) > CLIP_FAR_Z) || 
+           ((z_bsphere + radius) < CLIP_NEAR_Z)) {
             return 1;
         }
 
         // test against x right and left planes, first compute viewing volume
         // extents at position z position of bounding sphere
-
         x_compare = (( (float) WINDOW_WIDTH / 2) * z_bsphere) / VIEWING_DISTANCE;
-
-        if(((x_bsphere - radius) > x_compare) || ((x_bsphere + radius) < (-x_compare))) {
+        if(((x_bsphere - radius) > x_compare) || 
+           ((x_bsphere + radius) < (-x_compare))) {
             return 1;
         }
 
-
         // finally test against y top and bottom planes
         y_compare = (INVERSE_ASPECT_RATIO * ((float) WINDOW_HEIGHT / 2) * z_bsphere) / VIEWING_DISTANCE;
-
-        if(((y_bsphere - radius) > y_compare) || ((y_bsphere + radius) < (-y_compare))) {
+        if(((y_bsphere - radius) > y_compare) || 
+           ((y_bsphere + radius) < (-y_compare))) {
             return 1;
         }
         
@@ -156,20 +132,16 @@ int object_culling(Object* object, Matrix* view_inverse, int mode) {
     }
 }
 
-
+// this fnuction clip an object in camera coordiantes against the 3D viewing
+// volume. The function has 2 mode of operation. In CLIP_Z_MODE the 
+// function performs only a simple z extend clip with the near and far clipping
+// planes. In CLIP_XYZ_MODE the function performs a full 3D clip.
 void clip_object_3D(Object* object, int mode) {
-    //this fnuction clip an object in camera coordiantes against the 3D viewing
-    // volume. The function has 2 mode of operation. In CLIP_Z_MODE the 
-    // function performs only a simple z extend clip with the near and far clipping
-    // planes. In CLIP_XYZ_MODE the function performs a full 3D clip.
-
     int curr_poly;      // the current polygon being processed
-
     float x1, y1, z1,
           x2, y2, z2,
           x3, y3, z3,
           x4, y4,z4,    // working variables used to hold vertices
-
           x1_compare,   // used to hold clipping points on x and y
           y1_compare,
           x2_compare,
@@ -180,14 +152,12 @@ void clip_object_3D(Object* object, int mode) {
           y4_compare;
 
     // test if trivial z clipping is being requested
-    if(mode == CLIP_Z_MODE)
-    {
+    if(mode == CLIP_Z_MODE) {
         // attempt to clip each polygon against viewing volume
-        for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
-        {
+        for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++) {
             // reset clipped variable
             // otherwise once clipped object will always be clipped.
-            //object->polys[curr_poly].clipped = 0;
+            object->polys[curr_poly].clipped = 0;
 
             // extract z components
             z1 = object->vertices_camera[object->polys[curr_poly].vertex_list[0]].z;
@@ -195,29 +165,24 @@ void clip_object_3D(Object* object, int mode) {
             z3 = object->vertices_camera[object->polys[curr_poly].vertex_list[2]].z;
 
             // est if this is a quad
-            if(object->polys[curr_poly].num_points == 4) 
-            {
+            if(object->polys[curr_poly].num_points == 4) {
                 // extract 4th z component
                 z4 = object->vertices_camera[object->polys[curr_poly].vertex_list[3]].z;
-            }
-            else {
+            } else {
                 z4 = z3;
             }
 
             // perfrom near and far z clipping test
             if( (z1 < CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) ||
-                (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z && z4 > CLIP_FAR_Z))
-            {
+                (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z && z4 > CLIP_FAR_Z)) {
                 // set clipped flag
                 object->polys[curr_poly].clipped = 1;
             }
         } // end for curr_poly
     }
-    else
-    {
+    else {
         // CLIP_XYZ_MODE, perform full 3D viewing volume clip
-        for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++)
-        {
+        for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++) {
             // reset clipped variable
             // otherwise once clipped object will always be clipped.
             object->polys[curr_poly].clipped = 0;
@@ -245,12 +210,10 @@ void clip_object_3D(Object* object, int mode) {
 
                 // do clipping
                 if(!((z1 > CLIP_NEAR_Z || z2 > CLIP_NEAR_Z || z3 > CLIP_NEAR_Z || z4 > CLIP_NEAR_Z) &&
-                     (z1 < CLIP_FAR_Z || z2 < CLIP_FAR_Z || z3 < CLIP_FAR_Z || z4 < CLIP_FAR_Z)))
-                {
+                     (z1 < CLIP_FAR_Z || z2 < CLIP_FAR_Z || z3 < CLIP_FAR_Z || z4 < CLIP_FAR_Z))) {
                     object->polys[curr_poly].clipped = 1;
                     continue;
                 }
-                
 
                 // pre-compute x comparison ranges
                 x1_compare = (((float) WINDOW_WIDTH / 2) * z1) / VIEWING_DISTANCE;
@@ -260,39 +223,34 @@ void clip_object_3D(Object* object, int mode) {
 
                 // perform x tests
                 if(!((x1 > (-x1_compare) || x2 > (-x2_compare) || x3 > (-x3_compare) || x4 > (-x4_compare)) &&
-                     (x1 < x1_compare || x2 < x2_compare || x3 < x3_compare || x4 < x4_compare)))
-                {
+                     (x1 < x1_compare || x2 < x2_compare || x3 < x3_compare || x4 < x4_compare))) {
                     // set clipped flag
                     object->polys[curr_poly].clipped = 1;
                     continue;
                 }
 
                 //pre-compute y comparison ranges
-                y1_compare = (((float) WINDOW_HEIGHT / 2) * z1) / VIEWING_DISTANCE;  // inverse aspect ratio here?
+                y1_compare = (((float) WINDOW_HEIGHT / 2) * z1) / VIEWING_DISTANCE; 
                 y2_compare = (((float) WINDOW_HEIGHT / 2) * z2) / VIEWING_DISTANCE; 
                 y3_compare = (((float) WINDOW_HEIGHT / 2) * z3) / VIEWING_DISTANCE; 
                 y4_compare = (((float) WINDOW_HEIGHT / 2) * z4) / VIEWING_DISTANCE; 
 
                 // perform y test
                 if(!((y1 > (-y1_compare) || y2 > (-y2_compare) || y3 > (-y3_compare) || y4 > (-y4_compare)) && 
-                    (y1 < y1_compare || y2 < y2_compare || y3 < y3_compare || y4 < y4_compare)))
-                {
+                    (y1 < y1_compare || y2 < y2_compare || y3 < y3_compare || y4 < y4_compare))) {
                     // set clipped flag
                     object->polys[curr_poly].clipped = 1;
                     continue;
                 }         
             } // end if quad
-            else
-            {
+            else {
                 // must be triangle, perform clipping tests on only 3 vertices
                 object->polys[curr_poly].clipped = 0;
 
                 // do clipping tests
-
                 // perform near and far clipping first
                 if( (z1 < CLIP_NEAR_Z && z2 < CLIP_NEAR_Z && z3 < CLIP_NEAR_Z && z4 < CLIP_NEAR_Z) ||
-                (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z))
-                {
+                (z1 > CLIP_FAR_Z && z2 > CLIP_FAR_Z && z3 > CLIP_FAR_Z)) {
                     // set clipped flag
                     object->polys[curr_poly].clipped = 1;
                     continue;
@@ -305,8 +263,7 @@ void clip_object_3D(Object* object, int mode) {
 
                 // perform x tests
                 if(!((x1 > (-x1_compare) || x2 > (-x2_compare) || x3 > (-x3_compare)) &&
-                     (x1 < x1_compare || x2 < x2_compare || x3 < x3_compare)))
-                {
+                     (x1 < x1_compare || x2 < x2_compare || x3 < x3_compare))) {
                     // set clipped flag
                     object->polys[curr_poly].clipped = 1;
                     continue;
@@ -319,8 +276,7 @@ void clip_object_3D(Object* object, int mode) {
 
                 // perform y test
                 if(!((y1 > (-y1_compare) || y2 > (-y2_compare) || y3 > (-y3_compare)) && 
-                    (y1 < y1_compare || y2 < y2_compare || y3 < y3_compare)))
-                {
+                    (y1 < y1_compare || y2 < y2_compare || y3 < y3_compare))) {
                     // set clipped flag
                     object->polys[curr_poly].clipped = 1;
                     continue;
@@ -330,6 +286,9 @@ void clip_object_3D(Object* object, int mode) {
     }
 }
 
+// Function clips polygon meaning triangle or square facet and specifcally looks for
+// polygons who are on the verge of being inside frame and might have 1 or 2 points
+// outside frame while rest is still inside, i.e near_z.
 void clip_polygon(facet *world_poly_storage, facet **world_polys, int *num_polys_frame) {
     // iterate through each polygon in render list
     int curr_poly, p_num_polys_frame = *num_polys_frame;   
@@ -446,7 +405,7 @@ void clip_polygon(facet *world_poly_storage, facet **world_polys, int *num_polys
                 // is equal to CLIP_NEAR_Z, then plug that back into to solve for x,y of the 3D line.
 
                 // clip ege v0->v1 and intersection occurs when z = CLIP_NEAR_Z
-                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
+                v = vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
                 t1 = ((CLIP_NEAR_Z - world_polys[curr_poly]->vertex_list[v0].z) / v.z);
 
                 // now plug back in and find x,y interseciton with the plane
@@ -459,7 +418,7 @@ void clip_polygon(facet *world_poly_storage, facet **world_polys, int *num_polys
                 world_polys[curr_poly]->vertex_list[v1].z = CLIP_NEAR_Z;
 
                 // clip edge v0->v2 and intersection occurs when z = CLIP_NEAR_Z, so t:
-                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
+                v = vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
                 t2 = ((CLIP_NEAR_Z - world_polys[curr_poly]->vertex_list[v0].z) / v.z);
 
                 // now plug t back in and find x,y intersection with the plane
@@ -472,9 +431,9 @@ void clip_polygon(facet *world_poly_storage, facet **world_polys, int *num_polys
                 world_polys[curr_poly]->vertex_list[v2].z = CLIP_NEAR_Z;
 
                 // re-compute normal
-                u = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
-                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
-                world_polys[curr_poly]->normal = *vector_cross_product(&u, &v);
+                u = vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
+                v = vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
+                world_polys[curr_poly]->normal = vector_cross_product(&u, &v);
 
             } // end if 2 points outside
             else 
@@ -519,7 +478,7 @@ void clip_polygon(facet *world_poly_storage, facet **world_polys, int *num_polys
                 // CLIP_NEAR_Z, then plug that back into to to solve for x,y of the 3D line.
 
                 // clip edge v0->v1 and intersection occurs when z = CLIP_NEAR_Z, so t:
-                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
+                v = vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
                 t1 = ((CLIP_NEAR_Z - world_polys[curr_poly]->vertex_list[v0].z) / v.z);
 
                 // now plug t back in and ifnd x,y intersection with the plane
@@ -527,7 +486,7 @@ void clip_polygon(facet *world_poly_storage, facet **world_polys, int *num_polys
                 y01i = world_polys[curr_poly]->vertex_list[v0].y + v.y * t1;
 
                 // clip edge v0->v2 and intersection occurs when z = CLIP_NEAR_Z, so t:
-                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
+                v = vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
                 t2 = ((CLIP_NEAR_Z - world_polys[curr_poly]->vertex_list[v0].z) / v.z);
 
                 // now plug t back in and find x,y intersection with the plane
@@ -559,14 +518,14 @@ void clip_polygon(facet *world_poly_storage, facet **world_polys, int *num_polys
 
                 // re-compute normals
                 // poly 1 first, in place
-                u = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
-                v = *vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
-                world_polys[curr_poly]->normal = *vector_cross_product(&u, &v);
+                u = vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v1]);
+                v = vector_sub(&world_polys[curr_poly]->vertex_list[v0], &world_polys[curr_poly]->vertex_list[v2]);
+                world_polys[curr_poly]->normal = vector_cross_product(&u, &v);
 
                 // now poly 2, temp_polygon
-                u = *vector_sub(&temp_polygon.vertex_list[v0], &temp_polygon.vertex_list[v1]);
-                v = *vector_sub(&temp_polygon.vertex_list[v0], &temp_polygon.vertex_list[v2]);
-                temp_polygon.normal = *vector_cross_product(&u, &v);
+                u = vector_sub(&temp_polygon.vertex_list[v0], &temp_polygon.vertex_list[v1]);
+                v = vector_sub(&temp_polygon.vertex_list[v0], &temp_polygon.vertex_list[v2]);
+                temp_polygon.normal = vector_cross_product(&u, &v);
 
                 // add new polygon to pipeline and assign pointer to it and icrement polys.
                 world_poly_storage[p_num_polys_frame] = temp_polygon;

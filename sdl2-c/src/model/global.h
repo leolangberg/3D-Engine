@@ -18,6 +18,7 @@
 #define VIEWING_DISTANCE     250    // View distance (FOV)
 #define ASPECT_RATIO         1      // ratio between width and height
 #define INVERSE_ASPECT_RATIO 1
+#define BYTE4 4
 
 #define CLIP_FAR_Z 1000.0f                  // max z distance of objects in view
 #define CLIP_NEAR_Z 1.0f                    // min z distance of objects in view
@@ -38,6 +39,7 @@
 #define TWO_SIDED 1             
 
 #define RESET_POLY_LIST 0           // Resets polygon list by setting num_polys_frame = 0
+#define MAX_AMOUNT_OF_OBJECTS 24
 
 
 // used to compute the min and max of two expresions
