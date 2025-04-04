@@ -76,6 +76,167 @@ char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
     }
 }
 
+// count how many lines there are in file.
+// helps with determining size for vector array.
+int OBJ_get_amount_polys(char *filename) {
+    
+    int num_polys = 0;
+    char buffer[80];          // holds input string
+    FILE *fp;
+
+    // open the disk file
+    if((fp=fopen(filename, "r")) == NULL) {
+        printf("could not open file %s\n", filename);
+        return 0;
+    }
+    while(1) {
+        if(PLG_Get_Line(buffer, 80, fp) == NULL) {
+            break;
+        }
+        if(buffer[0] == 'f') {
+            num_polys++;
+        }
+    }
+
+    fclose(fp);
+    return num_polys;
+
+}
+
+// count how many lines there are in file.
+// helps with determining size for vector array.
+int OBJ_get_amount_vertices(char *filename) {
+    
+    int num_vertices = 0;
+    char buffer[80];          // holds input string
+    FILE *fp;
+
+    // open the disk file
+    if((fp=fopen(filename, "r")) == NULL) {
+        printf("could not open file %s\n", filename);
+        return 0;
+    }
+    while(1) {
+        if(PLG_Get_Line(buffer, 80, fp) == NULL) {
+            break;
+        }
+        if(buffer[0] == 'v') {
+            num_vertices++;
+        }
+    }
+
+    fclose(fp);
+    return num_vertices;
+
+}
+
+int OBJ_Load_Object(Object* object, char *filename, float scale) {
+    // this function loads an object off disk and allows it to be scaled.
+
+    FILE *fp; // disk file
+    static int id_number = 0; // used to set object id's
+    char buffer[80],          // holds input string
+         type;
+    float x,y,z;              // a single vertex
+    int tl,
+        tr,
+        br;
+    int vertex_0,
+        vertex_1,
+        vertex_2;
+
+    Vector u,v,normal;              // working vectors
+
+    const int num_vertices = OBJ_get_amount_vertices(filename);
+    const int num_polys    = OBJ_get_amount_polys(filename);
+    printf("verts: %d, polys: %d\n", num_vertices, num_polys);
+
+    int ver_index = 0;
+    int poly_index = 0;
+
+    object->num_vertices = num_vertices;
+    object->num_polys = num_polys;
+    object->state = 1;
+
+    object->world_pos.x = 0;
+    object->world_pos.y = 0;
+    object->world_pos.z = 0;
+
+    object->id = id_number++;
+
+
+    // open the disk file
+    if((fp=fopen(filename, "r")) == NULL) {
+        printf("could not open file %s\n", filename);
+        return 0;
+    }
+
+    // Find and add all vertice into the vertice array.
+    // Once "s off" is reached 
+    while(1) {
+        if(PLG_Get_Line(buffer, 80, fp) == NULL) {
+            break;
+        }
+        if(sscanf(buffer, "%c %f %f %f", &type, &x, &y, &z) != 4) {
+            break;
+        }
+        // Vertice, add it to array.
+        if(type == 'v') {
+            object->vertices_local[ver_index].x = x * scale;
+            object->vertices_local[ver_index].y = y * scale;
+            object->vertices_local[ver_index].z = z * scale;
+            ver_index++;
+        }
+    }
+
+    // Iterate through all polys and add them to the object.
+    while(1) {
+        if(PLG_Get_Line(buffer, 80, fp) == NULL) {
+            break;
+        }
+        if(sscanf(buffer, "%c %d %d %d", &type, &tl, &tr, &br) != 4) {
+            break;
+        }
+        if(type == 'f') {
+
+            object->polys[poly_index].num_points = 3;
+            object->polys[poly_index].color      = 0x0000FF00;
+            object->polys[poly_index].two_sided  = 0;
+            object->polys[poly_index].visible    = 1;
+            object->polys[poly_index].clipped    = 0;
+            object->polys[poly_index].active     = 1;
+
+            // Top left corner = vertex_list[0]
+            // Also -1 for each value because file is 1' index and objects are 0'.
+            object->polys[poly_index].vertex_list[0] = tl-1;
+            object->polys[poly_index].vertex_list[1] = tr-1;
+            object->polys[poly_index].vertex_list[2] = br-1;
+
+
+            vertex_0 = object->polys[poly_index].vertex_list[0];
+            vertex_1 = object->polys[poly_index].vertex_list[1];
+            vertex_2 = object->polys[poly_index].vertex_list[2];
+    
+            // the vector u = v0->v1
+            u = vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_1]);
+            // the vector v = v0->v2
+            v = vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_2]);
+    
+            normal = vector_cross_product(&v, &u);
+            object->polys[poly_index].normal = normal;
+
+            poly_index++;
+
+        }
+
+    }
+
+    fclose(fp);   
+    object->radius = compute_object_radius(object);
+    return 1;
+    
+}
+
 // Loads PLG files by reading from the text file and declaring variables accordingly.
 // Also has the option to scale the object as it is being constructed.
 int PLG_Load_Object(Object* object, char *filename, float scale) {

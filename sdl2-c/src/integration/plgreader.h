@@ -10,4 +10,6 @@ char *PLG_Get_Line(char *string, int max_length, FILE *fp);
 // Also has the option to scale the object as it is being constructed.
 int PLG_Load_Object(Object* object, char *filename, float scale);
 
+int OBJ_Load_Object(Object* object, char *filename, float scale);
+
 #endif

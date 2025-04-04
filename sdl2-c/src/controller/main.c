@@ -38,7 +38,7 @@ float ambient_light = 6;
 
 // List of objects loaded in from PLG files.
 Object test_objects[MAX_AMOUNT_OF_OBJECTS];
-const int amount_of_objects = 16;
+const int amount_of_objects = 1;
 
 // Initialize camera, io and all external objects.
 static inline void initialize_state() {
@@ -46,11 +46,12 @@ static inline void initialize_state() {
     state.camera    = camera_init(&startpos);
     state.io        = io_create(&state.quit, state.camera);
     for(int index = 0; index < amount_of_objects; index++) {
-        PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
+        //PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
+        OBJ_Load_Object(&test_objects[index], "src/assets/mountains.obj", 1);
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
-        test_objects[index].polys[0].two_sided = 1;
+        //test_objects[index].polys[0].two_sided = 1;
     }  
 }
 

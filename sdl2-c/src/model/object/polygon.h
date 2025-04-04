@@ -8,10 +8,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define MAX_VERTICES_PER_OBJECT 24
+#define MAX_VERTICES_PER_OBJECT 8192
 #define MAX_POINTS_PER_POLYGON 4
-#define MAX_POLYS_PER_OBJECT 6
-#define MAX_POLYS_PER_FRAME 128
+#define MAX_POLYS_PER_OBJECT 8192
+#define MAX_POLYS_PER_FRAME 8192
 
 // vertex_0 = top left
 // vertex_1 = top right
