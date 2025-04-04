@@ -3,7 +3,7 @@
 // Removes backfaces meaning that the method determines if polygons are invisible or clipped from
 // the current viewpoint, and thus only draws relevant polygons. Relevant polygons of object are
 // also colored and shaded.
-void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
+void remove_backfaces(Object* object, Vector* view_point, int mode) {
     // this function removes all the backfaces of a n object by setting the removed
     // flag. This function assumes that the object has been transformed into 
     // camera coordinates. Also, the function computes the flat shading of the 
@@ -13,7 +13,6 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
         vertex_2,
         curr_poly;      // current polygon
     float dp;           // the result of the dot product
-          //intensity;    // the final intesity of the surface
     Vector u,v,         // general working vectors
            normal,      // the normal to the surface being processed
            sight;       // line of sight vector
@@ -55,21 +54,10 @@ void remove_backfaces_and_shade(Object* object, Vector* view_point, int mode) {
         }
         else {
             // else polygon is always visible i.e. two sided, set visibility flag
-            // so negine renders it
+            // so negine renders it. Should produce copy of wall with everything inverted
+            // and then produce 1 extra facet and reset two_sided to 1. 
             object->polys[curr_poly].visible = 1;
 
-            // perform shading calculation
-            // compute the two vectors on polygon that have the same initial points
-            vertex_0 = object->polys[curr_poly].vertex_list[0];
-            vertex_1 = object->polys[curr_poly].vertex_list[1];
-            vertex_2 = object->polys[curr_poly].vertex_list[2];
-
-            // the vector u = v0->v1 and vector v = v0->v2
-            u = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
-            v = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
-
-            // compute the normal to polygon v x u
-            normal = vector_cross_product(&v, &u);
         } // end else two sided
     } // end for curr_poly
 }

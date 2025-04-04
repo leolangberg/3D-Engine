@@ -1,6 +1,7 @@
 #include "../integration/plgreader.h"
 #include "../integration/io.h"
 #include "../model/object/polygon.h"
+#include "../model/light/rgba.h"
 #include "../model/camera.h"
 #include "../model/global.h"
 #include <SDL2/SDL.h>
@@ -29,6 +30,12 @@ facet* world_polys[MAX_POLYS_PER_FRAME];
 facet world_poly_storage[MAX_POLYS_PER_FRAME];
 int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT]; 
 
+RGBA palette[256];
+//Vector source = {-0.913913,0.389759,-0.113369};
+Vector source = {0,0,0};
+float ambient_light = 6;
+
+
 // List of objects loaded in from PLG files.
 Object test_objects[MAX_AMOUNT_OF_OBJECTS];
 const int amount_of_objects = 16;
@@ -43,6 +50,7 @@ static inline void initialize_state() {
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
+        test_objects[index].polys[0].two_sided = 1;
     }  
 }
 
@@ -72,7 +80,8 @@ static inline void lifecycle_process() {
         if(!object_culling(&test_objects[index], &state.camera->lookAt, OBJECT_CULL_XYZ_MODE)) 
         {
             object_local_to_world_transformation(&test_objects[index]);
-            remove_backfaces_and_shade(&test_objects[index], &state.camera->position, CONSTANT_SHADING);
+            remove_backfaces(&test_objects[index], &state.camera->position, CONSTANT_SHADING);
+            light(&test_objects[index], palette, &source, ambient_light);
             object_view_transformation(&test_objects[index], &state.camera->lookAt);
             clip_object_3D(&test_objects[index], CLIP_XYZ_MODE);
             generate_poly_list(world_poly_storage, world_polys, &num_polys_frame, &test_objects[index]);
@@ -85,7 +94,7 @@ static inline void lifecycle_process() {
 
 // Confirm correct initalization of sdl variables via 
 // the use of assertions.
-static inline void initalize_sdl() {
+static inline void initialize_sdl() {
     ASSERT(!SDL_Init(SDL_INIT_VIDEO), "SDL failed to initalize %s\n", SDL_GetError());
     state.window = SDL_CreateWindow("DEMO",
                    SDL_WINDOWPOS_CENTERED_DISPLAY(0), 
@@ -134,8 +143,9 @@ static inline void sdl_rendering_process() {
 // the actual rendering. memset() is then used to wipe the pixel array.
 int main( int arc, char* args[] ) {
     uint64_t frameStart, frameTime;
-    initalize_sdl();
+    initialize_sdl();
     initialize_state();
+    Load_palette(palette, 256, "src/assets/grey256.pal");
     while(!state.quit)
     {
         frameStart = SDL_GetTicks64(); // SDL_GetTicks - Uint32.

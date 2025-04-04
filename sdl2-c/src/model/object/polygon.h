@@ -13,6 +13,11 @@
 #define MAX_POLYS_PER_OBJECT 6
 #define MAX_POLYS_PER_FRAME 128
 
+// vertex_0 = top left
+// vertex_1 = top right
+// vertex_2 = bottom right
+// vertex_3 = bottom left
+
 typedef struct {
     int num_points;
     int vertex_list[MAX_POINTS_PER_POLYGON];
@@ -83,7 +88,7 @@ int object_culling(Object* object, Matrix* view_inverse, int mode);
 // Removes backfaces meaning that the method determines if polygons are invisible or clipped from
 // the current viewpoint, and thus only draws relevant polygons. Relevant polygons of object are 
 // also colored and shaded.
-void remove_backfaces_and_shade(Object* object, Vector* viewpoint, int mode);
+void remove_backfaces(Object* object, Vector* viewpoint, int mode);
 // This fnuction clip an object in camera coordiantes against the 3D viewing
 // volume. The function has 2 mode of operation. In CLIP_Z_MODE the 
 // function performs only a simple z extend clip with the near and far clipping

@@ -13,6 +13,8 @@ void generate_poly_list(facet *world_poly_storage, facet **world_polys, int *num
     for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++) {
         if(object->polys[curr_poly].visible && !object->polys[curr_poly].clipped) {
             // first copy data and vertices into an open slot in storage area
+            
+
             world_poly_storage[p_num_polys_frame].num_points = object->polys[curr_poly].num_points;
             world_poly_storage[p_num_polys_frame].color      = object->polys[curr_poly].color;
             world_poly_storage[p_num_polys_frame].shade[0]      = object->polys[curr_poly].shade[0];
@@ -37,6 +39,12 @@ void generate_poly_list(facet *world_poly_storage, facet **world_polys, int *num
             world_polys[p_num_polys_frame] = &world_poly_storage[p_num_polys_frame];
             *num_polys_frame += 1;
             p_num_polys_frame++;
+
+             // break up into 2 separate facing polygons and set two_sided to 0.
+            if(world_poly_storage[p_num_polys_frame].two_sided == 1) {
+
+            }
+            
         } // end if poly visible
     } // end for curr_poly
 }
@@ -84,10 +92,6 @@ void draw_poly_list_z(facet **world_polys, int *num_polys_frame, uint32_t* pixel
         x3 = (((float) WINDOW_WIDTH / 2)  + x3 * VIEWING_DISTANCE / z3);
         y3 = (((float) WINDOW_HEIGHT / 2) + ASPECT_RATIO * y3 * VIEWING_DISTANCE / z3); 
 
-        // temporary solution to flat shading.
-        for(int i = 0; i < 4; i++) {
-            world_polys[curr_poly]->shade[i] = world_polys[curr_poly]->color;
-        }
 
         //shade instead of color according to Lamotte.
         draw_triangle_3D_z((int) x1, (int) y1, (int) z1, (int) x2, (int) y2, (int) z2,(int) x3, (int) y3, (int) z3, 
