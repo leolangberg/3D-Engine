@@ -8,10 +8,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define MAX_VERTICES_PER_OBJECT 8192
+#define MAX_VERTICES_PER_OBJECT 17019
 #define MAX_POINTS_PER_POLYGON 4
-#define MAX_POLYS_PER_OBJECT 8192
-#define MAX_POLYS_PER_FRAME 8192
+#define MAX_POLYS_PER_OBJECT 9720
+#define MAX_POLYS_PER_FRAME 9720
 
 // vertex_0 = top left
 // vertex_1 = top right
@@ -81,6 +81,7 @@ static inline void object_position(Object* object, int x, int y, int z) {
 }
 
 /* All clipping function found in clip.c */
+void mirror_two_sided_polygons(Object *object);
 
 // Determines if object is out of frame by comparing bounding sphere to z and then x,y frame.
 // return 1 means object is out of frame and should be removed. 0 means it should not be removed.

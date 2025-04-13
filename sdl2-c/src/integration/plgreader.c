@@ -4,40 +4,33 @@
 #include <stdlib.h>
 
 // Reads line of PLG file and converts file text into string. 
+// this function get a line from a PLG file and strips comments
+// just pretend it's a black box!
 char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
-    // this function get a line from a PLG file and strips comments
-    // just pretend it's a black box!
 
     char buffer[80];
-
     int length,     // length of line read
         index=0,    // looping variables
         index_2=0,
         parsed=0;   // has the current input line been parsed
 
     // get the next line of input, make sure there is something on the line
-
     while(1)
     {
         // get the line
         if(!fgets(buffer, max_length, fp)) {
             return(NULL);
         }
-
         // get length of line
         length = strlen(buffer);
-
         // kill the carriage return
         buffer[length-1] = 0;
-
         // reset index
         index = 0;
-
         //eat leading white space
         while(buffer[index]==' ') {
             index++;
         }
-
         // read the line into buffer, if "#" arrives in data stream then disregard
         // rest of line.
         parsed = 0;
@@ -49,12 +42,10 @@ char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
             {
                 // insert character into output string
                 string[index_2] = buffer[index];
-
                 // test if this is a null terminator
                 if(string[index_2] == 0) {
                     parsed = 1;
                 }
-
                 // move to next character
                 index++;
                 index_2++;
@@ -68,7 +59,6 @@ char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
         
             }
         }
-
         // make sure we got a string and not a blank line
         if(strlen(string)) {
             return(string);
@@ -78,7 +68,7 @@ char *PLG_Get_Line(char *string, int max_length, FILE *fp) {
 
 // count how many lines there are in file.
 // helps with determining size for vector array.
-int OBJ_get_amount_polys(char *filename) {
+int OBJ_search_amount(char *filename, char type) {
     
     int num_polys = 0;
     char buffer[80];          // holds input string
@@ -93,7 +83,7 @@ int OBJ_get_amount_polys(char *filename) {
         if(PLG_Get_Line(buffer, 80, fp) == NULL) {
             break;
         }
-        if(buffer[0] == 'f') {
+        if(buffer[0] == type) {
             num_polys++;
         }
     }
@@ -103,32 +93,6 @@ int OBJ_get_amount_polys(char *filename) {
 
 }
 
-// count how many lines there are in file.
-// helps with determining size for vector array.
-int OBJ_get_amount_vertices(char *filename) {
-    
-    int num_vertices = 0;
-    char buffer[80];          // holds input string
-    FILE *fp;
-
-    // open the disk file
-    if((fp=fopen(filename, "r")) == NULL) {
-        printf("could not open file %s\n", filename);
-        return 0;
-    }
-    while(1) {
-        if(PLG_Get_Line(buffer, 80, fp) == NULL) {
-            break;
-        }
-        if(buffer[0] == 'v') {
-            num_vertices++;
-        }
-    }
-
-    fclose(fp);
-    return num_vertices;
-
-}
 
 int OBJ_Load_Object(Object* object, char *filename, float scale) {
     // this function loads an object off disk and allows it to be scaled.
@@ -147,8 +111,8 @@ int OBJ_Load_Object(Object* object, char *filename, float scale) {
 
     Vector u,v,normal;              // working vectors
 
-    const int num_vertices = OBJ_get_amount_vertices(filename);
-    const int num_polys    = OBJ_get_amount_polys(filename);
+    const int num_vertices = OBJ_search_amount(filename, 'v');
+    const int num_polys    = OBJ_search_amount(filename, 'f');
     printf("verts: %d, polys: %d\n", num_vertices, num_polys);
 
     int ver_index = 0;
@@ -163,7 +127,6 @@ int OBJ_Load_Object(Object* object, char *filename, float scale) {
     object->world_pos.z = 0;
 
     object->id = id_number++;
-
 
     // open the disk file
     if((fp=fopen(filename, "r")) == NULL) {
@@ -201,7 +164,7 @@ int OBJ_Load_Object(Object* object, char *filename, float scale) {
 
             object->polys[poly_index].num_points = 3;
             object->polys[poly_index].color      = 0x0000FF00;
-            object->polys[poly_index].two_sided  = 0;
+            object->polys[poly_index].two_sided  = 1;
             object->polys[poly_index].visible    = 1;
             object->polys[poly_index].clipped    = 0;
             object->polys[poly_index].active     = 1;
@@ -363,7 +326,7 @@ int PLG_Load_Object(Object* object, char *filename, float scale) {
 
         object->polys[index].num_points = num_vertices;
         object->polys[index].color      = logical_color;
-        object->polys[index].two_sided  = 0;
+        object->polys[index].two_sided  = 1;
         object->polys[index].visible    = 1;
         object->polys[index].clipped    = 0;
         object->polys[index].active     = 1;

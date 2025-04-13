@@ -1,5 +1,8 @@
 #include "polygon.h"
 
+
+
+
 // Removes backfaces meaning that the method determines if polygons are invisible or clipped from
 // the current viewpoint, and thus only draws relevant polygons. Relevant polygons of object are
 // also colored and shaded.
@@ -43,14 +46,15 @@ void remove_backfaces(Object* object, Vector* view_point, int mode) {
             // compute the dot product between line of sight vector and normal to surface
             dp = vector_dot_product(&normal, &sight);
 
-            // set the clip flagged appropriately
-            if(dp>0) {
-                // set visibility
-                object->polys[curr_poly].visible = 1;
-            } // end if face is visible
+            if(object->polys[curr_poly].two_sided == 0) {
+                // set the clip flagged appropriately
+                if(dp>0) object->polys[curr_poly].visible = 1;
+                else     object->polys[curr_poly].visible = 0; // set invisible flag
+            }
             else {
-                object->polys[curr_poly].visible = 0; // set invisible flag
-            } 
+                // Object is two sided. Which means that it is always visible
+                object->polys[curr_poly].visible = 1;
+            }
         }
         else {
             // else polygon is always visible i.e. two sided, set visibility flag

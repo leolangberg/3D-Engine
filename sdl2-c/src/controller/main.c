@@ -33,7 +33,7 @@ int z_buffer[WINDOW_WIDTH * WINDOW_HEIGHT];
 RGBA palette[256];
 //Vector source = {-0.913913,0.389759,-0.113369};
 Vector source = {0,0,0};
-float ambient_light = 6;
+float ambient_light = 6.0f;
 
 
 // List of objects loaded in from PLG files.
@@ -45,9 +45,10 @@ static inline void initialize_state() {
     Vector startpos = vector_create(0, 0, 0);
     state.camera    = camera_init(&startpos);
     state.io        = io_create(&state.quit, state.camera);
+        
+    // PLG_Load_Object(&test_objects[0], "src/assets/cube.plg", 1);
+    OBJ_Load_Object(&test_objects[0], "src/assets/mountains.obj", 1);
     for(int index = 0; index < amount_of_objects; index++) {
-        //PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
-        OBJ_Load_Object(&test_objects[index], "src/assets/mountains.obj", 1);
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
@@ -80,6 +81,8 @@ static inline void lifecycle_process() {
     for(int index = 0; index < amount_of_objects; index++) {
         if(!object_culling(&test_objects[index], &state.camera->lookAt, OBJECT_CULL_XYZ_MODE)) 
         {
+            mirror_two_sided_polygons(&test_objects[index]);
+            printf("num polys: %d, verts: %d\n", test_objects[index].num_polys, test_objects[index].num_vertices);
             object_local_to_world_transformation(&test_objects[index]);
             remove_backfaces(&test_objects[index], &state.camera->position, CONSTANT_SHADING);
             light(&test_objects[index], palette, &source, ambient_light);

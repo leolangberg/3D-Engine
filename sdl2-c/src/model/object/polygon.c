@@ -3,6 +3,57 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* For polygons that are two_sided we create duplicate mirrored polygons */
+void mirror_two_sided_polygons(Object *object) {
+    
+    int vertex_0, vertex_1, vertex_2;
+    Vector u,v, normal;
+
+    for(int curr_poly = 0; curr_poly < object->num_polys; curr_poly++) {
+        if(object->polys[curr_poly].two_sided == TWO_SIDED) {
+
+            object->polys[curr_poly].two_sided = ONE_SIDED;
+            
+            object->polys[object->num_polys].num_points = object->polys[curr_poly].num_points;
+            object->polys[object->num_polys].color      = object->polys[curr_poly].color;
+            object->polys[object->num_polys].two_sided  = ONE_SIDED;
+            object->polys[object->num_polys].visible    = object->polys[object->num_polys].visible;
+            object->polys[object->num_polys].clipped    = object->polys[curr_poly].clipped;
+            object->polys[object->num_polys].active     = object->polys[curr_poly].active;
+
+            if(object->polys[curr_poly].num_points == 3) {
+                object->polys[object->num_polys].vertex_list[0] = object->polys[curr_poly].vertex_list[1];
+                object->polys[object->num_polys].vertex_list[1] = object->polys[curr_poly].vertex_list[0];
+                object->polys[object->num_polys].vertex_list[2] = object->polys[curr_poly].vertex_list[2];
+                object->num_vertices += 3;
+            }
+            else { // Quad
+                object->polys[object->num_polys].vertex_list[0] = object->polys[curr_poly].vertex_list[1];
+                object->polys[object->num_polys].vertex_list[1] = object->polys[curr_poly].vertex_list[0];
+                object->polys[object->num_polys].vertex_list[2] = object->polys[curr_poly].vertex_list[3];
+                object->polys[object->num_polys].vertex_list[3] = object->polys[curr_poly].vertex_list[2];
+                object->num_vertices += 4;
+            }
+
+
+            vertex_0 = object->polys[object->num_polys].vertex_list[0];
+            vertex_1 = object->polys[object->num_polys].vertex_list[1];
+            vertex_2 = object->polys[object->num_polys].vertex_list[2];
+            // the vector u = v0->v1
+            u = vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_1]);
+            // the vector v = v0->v2
+            v = vector_sub(&object->vertices_local[vertex_0], &object->vertices_local[vertex_2]);
+    
+            normal = vector_cross_product(&v, &u);
+            object->polys[object->num_polys].normal = normal;
+
+            object->num_polys++;
+            
+        }
+    }
+}
+
+
 // this function is used to generate the final plygon list that will be
 // rendered. Object by object the list is built up.
 void generate_poly_list(facet *world_poly_storage, facet **world_polys, int *num_polys_frame, Object* object) {
@@ -13,7 +64,7 @@ void generate_poly_list(facet *world_poly_storage, facet **world_polys, int *num
     for(curr_poly = 0; curr_poly < object->num_polys; curr_poly++) {
         if(object->polys[curr_poly].visible && !object->polys[curr_poly].clipped) {
             // first copy data and vertices into an open slot in storage area
-            
+
 
             world_poly_storage[p_num_polys_frame].num_points = object->polys[curr_poly].num_points;
             world_poly_storage[p_num_polys_frame].color      = object->polys[curr_poly].color;
@@ -40,11 +91,6 @@ void generate_poly_list(facet *world_poly_storage, facet **world_polys, int *num
             *num_polys_frame += 1;
             p_num_polys_frame++;
 
-             // break up into 2 separate facing polygons and set two_sided to 0.
-            if(world_poly_storage[p_num_polys_frame].two_sided == 1) {
-
-            }
-            
         } // end if poly visible
     } // end for curr_poly
 }
@@ -109,6 +155,7 @@ void draw_poly_list_z(facet **world_polys, int *num_polys_frame, uint32_t* pixel
             draw_triangle_3D_z((int) x3, (int) y3, (int) z3,(int) x4, (int) y4, (int) z4, (int) x1, (int) y1, (int) z1,
                              quadcolors, pixelmap, z_buffer, FLAT_SHADING);
         } // end if quad
+
     } // end for curr_poly
 }
 

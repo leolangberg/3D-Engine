@@ -1,0 +1,15 @@
+
+13/4:
+
+Bug occurs when running .obj objects where you can sort of see through certain parts
+which leads to wrong lighting as a results. Certain polygons basically become 
+see-through which gives this effect.
+
+I suspect that some polygons structured by the object file have their normals pointing
+inside and not outside, which means that some polygons are faced in wrong direction.
+
+Possible solution would be either find out specifically and turn these polygons to
+face correctly, perhaps the objects were written for right-handed rendering? (im left).
+
+Another possibility would be to implement two_sided polygons which essentially just copies
+the original polygon, and then mirrors it to face the other direction.

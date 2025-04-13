@@ -3,6 +3,7 @@
 #define DISPLAY_H
 
 #include "../model/global.h"
+#include "../model/math/vector.h"
 #include <stdint.h>
 
 
@@ -15,5 +16,7 @@ static inline void display_draw_pixel(uint32_t* pixelmap, int x, int y, uint32_t
     }
     return;
 }
+
+void display_draw_line(uint32_t* pixelmap, const Vector* v1, const Vector* v2, uint32_t color);
 
 #endif
