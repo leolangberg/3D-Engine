@@ -10,3 +10,7 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 .DS_Store
+sdl2-c/lib
+sdl2-c/include
+sdl2-c/bin
+

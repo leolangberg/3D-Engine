@@ -59,7 +59,7 @@ void object_local_to_world_transformation(Object* object) {
 // and projection. Note the viewer is at (0,0,0) with angles 0,0,0 so the 
 // transformation is imply to add the world position to each  local vertex
 void object_view_transformation(Object *object, Matrix *view_inverse) {  
-        for(int index = 0; index < object->num_vertices; index++) {
-            object->vertices_camera[index] = vector_matrix_mul(&object->vertices_world[index], view_inverse);
-        }
+    for(int index = 0; index < object->num_vertices; index++) {
+        object->vertices_camera[index] = vector_matrix_mul(&object->vertices_world[index], view_inverse);
+    }
 }

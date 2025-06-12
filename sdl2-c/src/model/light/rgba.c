@@ -63,11 +63,61 @@ void light(Object *object, RGBA *palette, Vector *light_source, float ambient_li
             mg = vector_length(&norm) * vector_length(&to_source);
             intensity += (point_light * (dp / mg));
         } 
+        
+        if(intensity > 16) { intensity = 16; } 
+        object->polys[curr_poly].shade[0] = palette_get_color(palette, ((16 * (int) intensity) - 1));
+
+
+        // ###################################################################
+        
+        // Enligt chat: for eaech vertex, you average the normals of all the polygons
+        //              that share that vertex. (Run through vertex list?)
+        // For gouraud shading then we need to know intensity for each vertex.
+        vertex_0 = object->polys[curr_poly].vertex_list[1];
+        vertex_1 = object->polys[curr_poly].vertex_list[2];
+        vertex_2 = object->polys[curr_poly].vertex_list[0];
+
+
+        u = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
+        v = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
+        normal = vector_cross_product(&v, &u); // originally u x v but n grows in wrong direction then?
+        norm = vector_normalize(&normal);
+        to_source = vector_sub(&object->vertices_world[vertex_0], light_source);
+        dp = vector_dot_product(&norm, &to_source);
+
+        // Directional light hits object.
+        if(dp > 0) {
+            // now cos() = (w*v) / ||w|| ||v||
+            mg = vector_length(&norm) * vector_length(&to_source);
+            intensity += (point_light * (dp / mg));
+        } 
 
         if(intensity > 16) { intensity = 16; } 
-        for(int i = 0; i < 4; i++) {
-            object->polys[curr_poly].shade[i] = palette_get_color(palette, ((16 * (int) intensity) - 1));
-        }
+        object->polys[curr_poly].shade[1] = palette_get_color(palette, ((16 * (int) intensity) - 1));
+
+
+        // For gouraud shading then we need to know intensity for each vertex.
+        vertex_0 = object->polys[curr_poly].vertex_list[2];
+        vertex_1 = object->polys[curr_poly].vertex_list[0];
+        vertex_2 = object->polys[curr_poly].vertex_list[1];
+
+
+        u = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_1]);
+        v = vector_sub(&object->vertices_world[vertex_0], &object->vertices_world[vertex_2]);
+        normal = vector_cross_product(&v, &u); // originally u x v but n grows in wrong direction then?
+        norm = vector_normalize(&normal);
+        to_source = vector_sub(&object->vertices_world[vertex_0], light_source);
+        dp = vector_dot_product(&norm, &to_source);
+
+        // Directional light hits object.
+        if(dp > 0) {
+            // now cos() = (w*v) / ||w|| ||v||
+            mg = vector_length(&norm) * vector_length(&to_source);
+            intensity += (point_light * (dp / mg));
+        } 
+
+        if(intensity > 16) { intensity = 16; } 
+        object->polys[curr_poly].shade[2] = palette_get_color(palette, ((16 * (int) intensity) - 1));
     }
 }
 

@@ -13,3 +13,25 @@ face correctly, perhaps the objects were written for right-handed rendering? (im
 
 Another possibility would be to implement two_sided polygons which essentially just copies
 the original polygon, and then mirrors it to face the other direction.
+
+SOLVED: by mirroring all polygons in an object that are two sided and then adding them to
+the object. Works but does mean that vertices and plygons per object are now 2x/6x
+
+
+16/4:
+
+Major bug occurs when refactoring vector_matrix_mul. Directional change still works correctly
+but when moving position there there is no correspondance from objects. Meaning that position
+of camera is moving, but objects related to camera are not, which should indicate that it has 
+something to do with camera coordinate, I suspect?
+
+Vector_matrix_mul_2 does not get updated with to include the camera position. 
+Original vector_matrix_mul takes the position into acconut but new function does not.
+
+BUG SOLVED: forgot to include 4th row in matrix multiplication as I thought it would be
+unnecessary (since vector is only 1x3) but inverse matrix is 4x4 with relevant values at
+bottom row that were thus not included.
+
+
+ANCIENT BUG?
+X-axis somehow forced to be inversed. Still operates as normal, but possible bug somewhere.

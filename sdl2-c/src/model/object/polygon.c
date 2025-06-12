@@ -141,7 +141,7 @@ void draw_poly_list_z(facet **world_polys, int *num_polys_frame, uint32_t* pixel
 
         //shade instead of color according to Lamotte.
         draw_triangle_3D_z((int) x1, (int) y1, (int) z1, (int) x2, (int) y2, (int) z2,(int) x3, (int) y3, (int) z3, 
-                            world_polys[curr_poly]->shade, pixelmap, z_buffer, FLAT_SHADING);
+                            world_polys[curr_poly]->shade, pixelmap, z_buffer, GOURAUD_SHADING);
 
         // draw second poly if this is a quad
         if(is_quad) {

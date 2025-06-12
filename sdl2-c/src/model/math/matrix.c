@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "matrix.h"
+#include "vector.h"
 
 // Prints Matrix.
 // Having incorrect %f or %d makes all printouts bugged.
@@ -313,9 +314,14 @@ Matrix matrix_quick_lookat_inverse(const Matrix* pointAt) {
     return lookAt;
 }
 
-// multiplies a vector with a matrix and then returns a new vector.
+// Manually performs multiplication between vector and matrix.
+// Since matrix is always 4x4 this requries vector to be 1x4 which 
+// is fixed by introducing a makeshift 1 that multplies with 4th row (IMPORTANT).
 Vector vector_matrix_mul(const Vector* v1, const Matrix* m1) {
-    Matrix m_vec = vector_as_matrix(v1);
-    Matrix m_mul = matrix_mul(&m_vec, m1);
-    return vector_from_matrix_row(&m_mul, 0);
+    float x,y,z;
+    x = (v1->x * m1->matrix[0][0]) + (v1->y * m1->matrix[1][0]) + (v1->z * m1->matrix[2][0]) + (1 * m1->matrix[3][0]);
+    y = (v1->x * m1->matrix[0][1]) + (v1->y * m1->matrix[1][1]) + (v1->z * m1->matrix[2][1]) + (1 * m1->matrix[3][1]);
+    z = (v1->x * m1->matrix[0][2]) + (v1->y * m1->matrix[1][2]) + (v1->z * m1->matrix[2][2]) + (1 * m1->matrix[3][2]);
+
+    return vector_create(x,y,z);
 }

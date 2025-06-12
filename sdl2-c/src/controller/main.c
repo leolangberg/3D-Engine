@@ -49,6 +49,7 @@ static inline void initialize_state() {
     // PLG_Load_Object(&test_objects[0], "src/assets/cube.plg", 1);
     OBJ_Load_Object(&test_objects[0], "src/assets/mountains.obj", 1);
     for(int index = 0; index < amount_of_objects; index++) {
+        // PLG_Load_Object(&test_objects[index], "src/assets/cube.plg", 1);
         test_objects[index].world_pos.x=-200 + (index%4)*100;
         test_objects[index].world_pos.y=0;
         test_objects[index].world_pos.z=200 + 300*(index>>2);
